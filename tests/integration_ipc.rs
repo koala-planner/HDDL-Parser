@@ -4,7 +4,7 @@ use hddl_analyzer::{HDDLAnalyzer, SemanticErrorType};
 use std::fs;
 
 #[test]
-#[ignore = "takes too long to run"]
+// #[ignore = "takes too long to run"]
 pub fn ipc_validation_test() {
     for folder in fs::read_dir("tests/ipc").unwrap() {
         let path = folder.as_ref().unwrap().path();

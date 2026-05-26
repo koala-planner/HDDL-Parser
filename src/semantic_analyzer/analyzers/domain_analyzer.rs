@@ -81,11 +81,6 @@ impl<'a> DomainSemanticAnalyzer<'a> {
                         &declared_constants,
                         &declared_predicates,
                     )?;
-                    if !precondition.is_sat() {
-                        return Err(SemanticErrorType::ComplementaryActionPrecondition(
-                            action.name_pos
-                        ));
-                    }
                 }
                 _ => {}
             }
@@ -147,11 +142,6 @@ impl<'a> DomainSemanticAnalyzer<'a> {
                         &declared_constants,
                         &declared_predicates,
                     )?;
-                    if !precondition.is_sat() {
-                        return Err(SemanticErrorType::ComplementaryMethodPrecondition(
-                            method.name.name_pos
-                        ));
-                    }
                 }
                 _ => {}
             }

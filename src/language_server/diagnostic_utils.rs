@@ -294,11 +294,7 @@ impl From<ParsingError> for Diagnostic {
                             None
                         )
                     }
-                    SemanticErrorType::CyclicOrderingDeclaration(pos) |
-                    // Complementary Error
-                    SemanticErrorType::ComplementaryActionEffect(pos) |
-                    SemanticErrorType::ComplementaryActionPrecondition(pos) |
-                    SemanticErrorType::ComplementaryMethodPrecondition(pos) => {
+                    SemanticErrorType::CyclicOrderingDeclaration(pos) => {
                         Diagnostic::new(
                             Range {
                                 start: Position { line: pos.line - 1, character: 0 },

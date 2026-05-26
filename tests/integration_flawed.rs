@@ -470,52 +470,6 @@ pub fn no_method_validation_test() {
 }
 
 #[test]
-pub fn complementary_effects_validation_test() {
-    let domain = fs::read(
-        "tests/flawed_domains/complementary-effects-domain.hddl"
-    ).unwrap();
-    match HDDLAnalyzer::verify(&domain, None) {
-        Ok(_) => panic!("error not found"),
-        Err(err) => {
-            match err {
-                ParsingError::Semantic(x) => {
-                    match x {
-                        SemanticErrorType::ComplementaryActionEffect(pos) => {
-                            assert_eq!(pos.line, 55)
-                        }
-                        token => panic!("{:?}", token)
-                    }
-                }
-                token => panic!("{:?}", token)
-            }
-        }
-    }
-}
-
-#[test]
-pub fn complementary_preconditions_validation_test() {
-    let domain = fs::read(
-        "tests/flawed_domains/complementary-preconditions-domain.hddl"
-    ).unwrap();
-    match HDDLAnalyzer::verify(&domain, None) {
-        Ok(_) => panic!("error not found"),
-        Err(err) => {
-            match err {
-                ParsingError::Semantic(x) => {
-                    match x {
-                        SemanticErrorType::ComplementaryActionPrecondition(pos) => {
-                            assert_eq!(pos.line, 54)
-                        }
-                        token => panic!("{:?}", token)
-                    }
-                }
-                token => panic!("{:?}", token)
-            }
-        }
-    }
-}
-
-#[test]
 pub fn ignore_possibly_complementary_effects_validation_test() {
     let domain = fs::read(
         "tests/flawed_domains/possible-complementary-effects-domain.hddl"
