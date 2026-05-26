@@ -3,6 +3,8 @@ use std::{collections::HashMap, fmt};
 extern crate Robinson;
 use serde::Serialize;
 
+use crate::lexical_analyzer::NumberType;
+
 use super::*;
 
 #[derive(Clone, Debug, Serialize)]
@@ -19,6 +21,8 @@ pub enum Formula<'a> {
     Exists(Vec<Symbol<'a>>, Box<Formula<'a>>),
     // ∀vars: formula
     ForAll(Vec<Symbol<'a>>, Box<Formula<'a>>),
+    // probability, weights, and other quantities.
+    Weighted(NumberType, Box<Formula<'a>>),
     // formula = formula'
     Equals(&'a str, &'a str),
 }
@@ -46,6 +50,9 @@ impl<'a> Formula<'a> {
                 for q in qs {
                     predicates.extend(q.get_propositional_predicates().iter());
                 }
+            },
+            Formula::Weighted(_, q) => {
+                predicates.extend(q.get_propositional_predicates().iter());
             }
             Formula::Equals(_, _) => {}
             // not propositional
@@ -146,6 +153,9 @@ impl<'a> Formula<'a> {
             Formula::ForAll(quantifier, f) => {
                 Formula::ForAll(quantifier.clone(), Box::new(f.simplify()))
             }
+            Formula::Weighted(weight, f ) => {
+                Formula::Weighted(weight.clone(), Box::new(f.simplify()))
+            }
             Formula::Equals(a, b) => {
                 // a = b -> (a ^ b) v (~a ^ ~b)
                 let pred_a = Box::new(
@@ -188,6 +198,10 @@ impl<'a> Formula<'a> {
                 Formula::ForAll(quantifier, f) => Formula::Exists(
                     quantifier.clone(),
                     Box::new(Formula::Not(Box::new(f.to_nnf()))),
+                ),
+                Formula::Weighted(weight, f) => Formula::Weighted(
+                    weight.clone(),
+                    Box::new(f.to_nnf())
                 ),
                 //
                 Formula::Xor(_) | Formula::Imply(_, _) | Formula::Equals(_, _) => unreachable!("not simplified")
@@ -283,7 +297,7 @@ impl<'a> Formula<'a> {
                 return Formula::Imply(new_ps, new_qs);
             }
             Formula::Equals(_, _) => {}
-            Formula::ForAll(_, _) | Formula::Exists(_, _) => {return Formula::Empty}
+            Formula::ForAll(_, _) | Formula::Exists(_, _) | Formula::Weighted(_, _) => {return Formula::Empty}
         }
         self.clone()
     }
@@ -439,6 +453,9 @@ impl<'a> fmt::Display for Formula<'a> {
             Formula::ForAll(vars, inner) => {
                 let vars_str = vars.iter().map(|var| format!("{}", var.name)).collect::<Vec<_>>().join(", ");
                 write!(f, "∀{}: {}", vars_str, inner)
+            }
+            Formula::Weighted(weight, terms) => {
+                write!(f, "weight: {}, formula: {}", weight, terms)
             }
             Formula::Equals(lhs, rhs) => write!(f, "{} = {}", lhs, rhs),
         }

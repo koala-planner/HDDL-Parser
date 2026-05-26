@@ -165,8 +165,8 @@ impl fmt::Display for KeywordName {
     }
 }
 
-
-#[derive(Debug, PartialEq)]
+// TODO: Add support for lexing negative numbers
+#[derive(Debug, PartialEq, Clone, Serialize)]
 pub enum NumberType {
     Real(f64),
     Integer(i64)

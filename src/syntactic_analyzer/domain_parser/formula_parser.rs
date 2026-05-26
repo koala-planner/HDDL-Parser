@@ -151,6 +151,39 @@ impl<'a> Parser<'a> {
                             return Err(ParsingError::Syntactic(error));
                         }
                     },
+                    // Stochastic Operations (represented as the And of Weighted branches)
+                    Token::Operator(OperationType::Probabilistic) => {
+                        let mut branches = vec![];
+                        loop {
+                            match self.tokenizer.get_token()? {
+                                // closing paren ends the block
+                                Token::Punctuator(PunctuationType::RParentheses) => {
+                                    return Ok(Formula::And(branches));
+                                }
+                                // a probability weight, immediately followed by its effect
+                                Token::Number(weight) => {
+                                    let f = self.parse_formula()?;
+                                    if let Formula::Empty = f {
+                                        let error = SyntacticError {
+                                            expected: "a formula following the probability".to_string(),
+                                            found: ")".to_string(),
+                                            position: self.tokenizer.get_last_token_position(),
+                                        };
+                                        return Err(ParsingError::Syntactic(error));
+                                    }
+                                    branches.push(Box::new(Formula::Weighted(weight, Box::new(f))));
+                                }
+                                token => {
+                                    let error = SyntacticError {
+                                        expected: "a probability or ')' to close the probabilistic block".to_string(),
+                                        found: token.to_string(),
+                                        position: self.tokenizer.get_last_token_position(),
+                                    };
+                                    return Err(ParsingError::Syntactic(error));
+                                }
+                            }
+                        }
+                    }
                     // Single Atom
                     Token::Identifier(name) => {
                         let predicate = Predicate {
