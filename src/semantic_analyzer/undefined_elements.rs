@@ -42,6 +42,9 @@ pub fn check_predicate_declarations<'a>(
             return check_predicate_declarations(&*new_formula, declared_predicates);
         }
         Formula::Equals(_, _) => {}
+        Formula::Weighted(_, new_formula) => {
+            return check_predicate_declarations(&*new_formula, declared_predicates);
+        }
         // TODO: add support for imply, and exists
         _ => {
             panic!()

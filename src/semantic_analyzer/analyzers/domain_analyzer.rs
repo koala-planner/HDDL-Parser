@@ -100,11 +100,6 @@ impl<'a> DomainSemanticAnalyzer<'a> {
                         &declared_constants,
                         &declared_predicates,
                     )?;
-                    if !effect.is_sat() {
-                        return Err(SemanticErrorType::ComplementaryActionEffect(
-                            action.name_pos
-                        ));
-                    }
                 }
                 _ => {}
             }

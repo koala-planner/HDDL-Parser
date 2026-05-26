@@ -1,5 +1,5 @@
 use super::*;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
 pub struct ProblemSemanticAnalyzer<'a> {
     problem: &'a ProblemAST<'a>,

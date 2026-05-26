@@ -214,7 +214,10 @@ impl<'a> Formula<'a> {
             Formula::Exists(quantifier, f) => {
                 Formula::Exists(quantifier.clone(), Box::new(f.to_nnf()))
             }
-            _ => unreachable!("Formula is not simplified"),
+            Formula::Weighted(w, f ) => {
+                Formula::Weighted(w.clone(), Box::new(f.to_nnf()))
+            }
+            token => unreachable!("Formula is not simplified {}", token),
         }
     }
 
@@ -260,6 +263,9 @@ impl<'a> Formula<'a> {
             }
             Formula::ForAll(q, vars) => {
                 Formula::ForAll(q.clone(), Box::new(vars.distribute_disjunction()))
+            }
+            Formula::Weighted(w, vars) => {
+                Formula::Weighted(w.clone(), Box::new(vars.distribute_disjunction()))
             }
             _ => unreachable!("formula is not simplified"),
         }
