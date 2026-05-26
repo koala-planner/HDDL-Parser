@@ -7,11 +7,18 @@ impl <'a> Parser<'a> {
             match self.tokenizer.get_token()? {
                 Token::Punctuator(PunctuationType::LParentheses) => {
                     match self.tokenizer.get_token()? {
-                        // predicate definition
+                        // predicate definitions
                         Token::Keyword(KeywordName::Predicates) => {
                             let predicates = self.parse_predicates()?;
                             for predicate in predicates {
                                 syntax_tree.add_predicate(predicate);
+                            }
+                        }
+                        // function definitions
+                        Token::Keyword(KeywordName::Functions) => {
+                            let functions = self.parse_functions()?;
+                            for function in functions {
+                                syntax_tree.add_function(function);
                             }
                         }
                         // compund task definition

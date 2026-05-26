@@ -1001,6 +1001,63 @@ mod tests {
     }
 
     #[test]
+    pub fn function_parsing_test() {
+        let program = String::from(
+            "(define (domain rover-domain)
+            (:functions
+                (battery-amount ?r - rover)
+                (recharge-rate ?r - rover)
+                (battery-capacity)
+                (distance ?wp1 - waypoint ?wp2 - waypoint)
+            )
+        )",
+        ).into_bytes();
+        let lexer = LexicalAnalyzer::new(&program);
+        match Parser::new(lexer).parse() {
+            Ok(AbstractSyntaxTree::Domain(ast)) => {
+                assert_eq!(ast.functions.len(), 4);
+
+                // (battery-amount ?r - rover)
+                let battery_amount = &ast.functions[0];
+                assert_eq!(battery_amount.name, "battery-amount");
+                assert_eq!(battery_amount.variables.len(), 1);
+                assert_eq!(battery_amount.variables[0].name, "r");
+                if let Some(val) = battery_amount.variables[0].symbol_type {
+                    assert_eq!(val, "rover")
+                }
+
+                // (recharge-rate ?r - rover)
+                let recharge_rate = &ast.functions[1];
+                assert_eq!(recharge_rate.name, "recharge-rate");
+                assert_eq!(recharge_rate.variables.len(), 1);
+                assert_eq!(recharge_rate.variables[0].name, "r");
+                if let Some(val) = recharge_rate.variables[0].symbol_type {
+                    assert_eq!(val, "rover")
+                }
+
+                // (battery-capacity)  -- zero-arity
+                let battery_capacity = &ast.functions[2];
+                assert_eq!(battery_capacity.name, "battery-capacity");
+                assert_eq!(battery_capacity.variables.len(), 0);
+
+                // (distance ?wp1 - waypoint ?wp2 - waypoint)
+                let distance = &ast.functions[3];
+                assert_eq!(distance.name, "distance");
+                assert_eq!(distance.variables.len(), 2);
+                assert_eq!(distance.variables[0].name, "wp1");
+                if let Some(val) = distance.variables[0].symbol_type {
+                    assert_eq!(val, "waypoint")
+                }
+                assert_eq!(distance.variables[1].name, "wp2");
+                if let Some(val) = distance.variables[1].symbol_type {
+                    assert_eq!(val, "waypoint")
+                }
+            }
+            _ => panic!("parsing errors"),
+        }
+    }
+
+    #[test]
     pub fn comment_test() {
         let program = String::from(
             ";author: me

@@ -94,6 +94,7 @@ impl<'a> LexicalAnalyzer<'a> {
                         "types" => Ok(Token::Keyword(KeywordName::Types)),
                         "constants" => Ok(Token::Keyword(KeywordName::Constants)),
                         "predicates" => Ok(Token::Keyword(KeywordName::Predicates)),
+                        "functions" => Ok(Token::Keyword(KeywordName::Functions)),
                         "init" => Ok(Token::Keyword(KeywordName::Init)),
                         "htn" => Ok(Token::Keyword(KeywordName::HTN)),
                         "task" => Ok(Token::Keyword(KeywordName::Task)),

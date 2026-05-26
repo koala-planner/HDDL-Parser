@@ -10,6 +10,7 @@ pub struct DomainAST<'a> {
     pub compound_tasks: Vec<Task<'a>>,
     pub methods: Vec<Method<'a>>,
     pub actions: Vec<Action<'a>>,
+    pub functions: Vec<Function<'a>>
 }
 
 impl<'a> DomainAST<'a> {
@@ -23,6 +24,7 @@ impl<'a> DomainAST<'a> {
             compound_tasks: vec![],
             methods: vec![],
             actions: vec![],
+            functions: vec![]
         }
     }
 
@@ -44,6 +46,10 @@ impl<'a> DomainAST<'a> {
 
     pub fn add_action(&mut self, action: Action<'a>) {
         self.actions.push(action);
+    }
+
+    pub fn add_function(&mut self, function: Function<'a>) {
+        self.functions.push(function);
     }
 
     pub fn add_var_type(&mut self, var: Symbol<'a>){

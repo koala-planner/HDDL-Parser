@@ -93,7 +93,8 @@ pub enum RequirementType {
     NegativePreconditions,
     UniversalPreconditions,
     Equality,
-    STRIPS
+    STRIPS,
+    ProbabilisticEffects,
 }
 
 impl fmt::Display for RequirementType {
@@ -106,6 +107,7 @@ impl fmt::Display for RequirementType {
             RequirementType::UniversalPreconditions => ":universal-preconditions",
             RequirementType::Equality => ":equality",
             RequirementType::STRIPS => ":strips",
+            RequirementType::ProbabilisticEffects => ":probabilistic-effects",
         };
         write!(f, "{}", requirement)
     }
@@ -122,6 +124,7 @@ pub enum KeywordName {
     Task,
     Constants,
     Predicates,
+    Functions,
     Init,
     HTN,
     Action,
@@ -148,6 +151,7 @@ impl fmt::Display for KeywordName {
             KeywordName::Task => ":task",
             KeywordName::Constants => ":constants",
             KeywordName::Predicates => ":predicates",
+            KeywordName::Functions => ":functions",
             KeywordName::Init => ":init",
             KeywordName::HTN => ":htn",
             KeywordName::Action => ":action",
