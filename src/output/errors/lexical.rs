@@ -4,6 +4,7 @@ use std::fmt;
 #[derive(Debug)]
 pub enum LexicalErrorType {
     InvalidIdentifier,
+    InvalidRealNumber,
     InvalidKeyword,
 }
 
@@ -22,6 +23,9 @@ impl fmt::Display for LexicalError {
             }
             LexicalErrorType::InvalidKeyword => {
                 write!(f, "line {}: '{}' is an invalid keyword.", self.position.line, self.lexeme)
+            }
+            LexicalErrorType::InvalidRealNumber => {
+                write!(f, "line {}: '{}' is an invalid real number. Expected digits after '.'", self.position.line, self.lexeme)
             }
         }
     }

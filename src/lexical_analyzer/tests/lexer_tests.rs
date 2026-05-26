@@ -207,6 +207,22 @@ mod lexer_test {
     }
 
     #[test]
+    pub fn number_recognition_test() {
+        let program = String::from(
+            "123.54 42\n"
+        ).into_bytes();
+        let lexer = LexicalAnalyzer::new(&program);
+        match lexer.get_token() {
+            Ok(Token::Number(NumberType::Real(x))) => {assert_eq!(x, 123.54)},
+            _ => panic!("wrong token")
+        }
+        match lexer.get_token() {
+            Ok(Token::Number(NumberType::Integer(x))) => {assert_eq!(x, 42)},
+            _ => panic!("wrong token")
+        }
+    }
+
+    #[test]
     pub fn identifier_recognition_test() {
         let program = String::from(
             "var123 var_3123 te23 v\n"

@@ -2,10 +2,11 @@ use std::fmt;
 
 use serde::Serialize;
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq)]
 pub enum Token<'a> {
     Keyword(KeywordName),
     Identifier(&'a str),
+    Number(NumberType),
     Operator(OperationType),
     Punctuator(PunctuationType),
     Requirement(RequirementType),
@@ -17,6 +18,7 @@ impl <'a> fmt::Display for Token<'a> {
         match self {
             Token::Keyword(keyword) => write!(fmt, "Keyword {}", keyword),
             Token::Identifier(id) => write!(fmt, "Identifier {}", id),
+            Token::Number(n) => write!(fmt, "Number {}", n),
             Token::Operator(op) => write!(fmt, "{}", op),
             Token::Punctuator(punc) => write!(fmt, "{}", punc),
             Token::Requirement(req) => write!(fmt, "Requirement {}", req),
@@ -52,6 +54,8 @@ pub enum OperationType {
     ForAll,
     Exists,
     Implication,
+    // Stochastic
+    Probabilistic,
     // Ordering
     Equal,
     LessThan,
@@ -59,6 +63,7 @@ pub enum OperationType {
     LessThanOrEqual,
     GreaterThanOrEqual,
 }
+
 
 impl fmt::Display for OperationType {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
@@ -70,6 +75,7 @@ impl fmt::Display for OperationType {
             OperationType::ForAll => write!(fmt, "forall"),
             OperationType::Exists => write!(fmt, "exists"),
             OperationType::Implication => write!(fmt, "when"),
+            OperationType::Probabilistic => write!(fmt, "probabilistic"),
             OperationType::Equal => write!(fmt, "="),
             OperationType::LessThan => write!(fmt, "<"),
             OperationType::GreaterThan => write!(fmt, ">"),
@@ -156,5 +162,21 @@ impl fmt::Display for KeywordName {
             KeywordName::Goal => ":goal",
         };
         write!(f, "{}", keyword)
+    }
+}
+
+
+#[derive(Debug, PartialEq)]
+pub enum NumberType {
+    Real(f64),
+    Integer(i64)
+}
+
+impl fmt::Display for NumberType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            NumberType::Integer(n) => return write!(f, "{}", n),
+            NumberType::Real(r) => return write!(f, "{}", r)
+        }
     }
 }

@@ -133,6 +133,14 @@ impl<'a> LexicalAnalyzer<'a> {
                     if peek {
                         init_cur_pos += 1;
                     }
+                    // Numeric literal
+                    if char.is_ascii_digit() {
+                        let (value, new_cur_pos) = self.peek_number(init_cur_pos)?;
+                        if !peek {
+                            self.cursor.set(new_cur_pos);
+                        }
+                        return Ok(Token::Number(value));
+                    }
                     let (lexeme, new_cur_pos) = self.peek_lexeme(init_cur_pos)?;
                     if !peek {
                         self.cursor.set(new_cur_pos);
@@ -144,7 +152,7 @@ impl<'a> LexicalAnalyzer<'a> {
                         "problem" => return Ok(Token::Keyword(KeywordName::Problem)),
                         _ => {
                             // Logical Operators
-                            match LexicalAnalyzer::is_logical_operator(&lexeme) {
+                            match LexicalAnalyzer::is_operator(&lexeme) {
                                 Some(x) => return Ok(Token::Operator(x)),
                                 // Identifier
                                 None => {
@@ -236,8 +244,45 @@ impl<'a> LexicalAnalyzer<'a> {
         }
     }
 
-    fn is_logical_operator(word: &str) -> Option<OperationType> {
+    fn peek_number(&self, init_cur_pos: usize) -> Result<(NumberType, usize), LexicalError> {
+        let mut cursor_pos = init_cur_pos;
+        let mut seen_dot = false;
+        while cursor_pos < self.program.len() {
+            let c = self.program[cursor_pos] as char;
+            if c.is_ascii_digit() {
+                cursor_pos += 1;
+            } else if c == '.' && !seen_dot {
+                seen_dot = true;
+                cursor_pos += 1;
+            } else {
+                break;
+            }
+        }
+        let lexeme = from_utf8(&self.program[init_cur_pos..cursor_pos]).unwrap();
+        if seen_dot {
+            match lexeme.parse::<f64>() {
+                Ok(value) => Ok((NumberType::Real(value), cursor_pos)),
+                Err(_) => Err(LexicalError {
+                    error_type: LexicalErrorType::InvalidRealNumber,
+                    lexeme: lexeme.to_string(),
+                    position: self.last_token_pos.get(),
+                }),
+            }
+        } else {
+            match lexeme.parse::<i64>() {
+                Ok(value) => Ok((NumberType::Integer(value), cursor_pos)),
+                Err(_) => Err(LexicalError {
+                    error_type: LexicalErrorType::InvalidIdentifier,
+                    lexeme: lexeme.to_string(),
+                    position: self.last_token_pos.get(),
+                }),
+            }
+        }
+    }
+
+    fn is_operator(word: &str) -> Option<OperationType> {
         match word {
+            // Logical Operators
             "and" => Some(OperationType::And),
             "or" => Some(OperationType::Or),
             "oneof" => Some(OperationType::Xor),
@@ -245,6 +290,8 @@ impl<'a> LexicalAnalyzer<'a> {
             "forall" => Some(OperationType::ForAll),
             "exists" => Some(OperationType::Exists),
             "imply" => Some(OperationType::Implication),
+            // Stochastic operators
+            "probabilistic" => return Some(OperationType::Probabilistic),
             _ => None,
         }
     }
