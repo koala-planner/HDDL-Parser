@@ -24,7 +24,7 @@ impl<'a> LexicalAnalyzer<'a> {
 
     // get the next token without advancing the cursor
     pub fn lookahead(&self) -> Result<Token<'a>, LexicalError> {
-        return self.parse(true);
+        self.parse(true)
     }
 
     pub fn get_last_token_position(&self) -> TokenPosition {
@@ -32,7 +32,7 @@ impl<'a> LexicalAnalyzer<'a> {
     }
 
     pub fn get_token(&self) -> Result<Token<'a>, LexicalError> {
-        return self.parse(false);
+        self.parse(false)
     }
 
     fn parse(&self, peek: bool) -> Result<Token<'a>, LexicalError> {
@@ -111,8 +111,8 @@ impl<'a> LexicalAnalyzer<'a> {
                         "ordering" | "order" => Ok(Token::Keyword(KeywordName::Ordering)),
                         "constraints" => Ok(Token::Keyword(KeywordName::Constraints)),
                         "goal" => Ok(Token::Keyword(KeywordName::Goal)),
-                        "domain" => return Ok(Token::Keyword(KeywordName::Domain)),
-                        "problem" => return Ok(Token::Keyword(KeywordName::Problem)),
+                        "domain" => Ok(Token::Keyword(KeywordName::Domain)),
+                        "problem" => Ok(Token::Keyword(KeywordName::Problem)),
                         _ => Err(LexicalError {
                             error_type: LexicalErrorType::InvalidKeyword,
                             lexeme: lexeme.to_string(),
@@ -127,7 +127,7 @@ impl<'a> LexicalAnalyzer<'a> {
                         self.cursor.set(self.cursor.get() + 1);
                         current = self.program[self.cursor.get()] as char;
                     }
-                    return self.parse(peek);
+                    self.parse(peek)
                 }
                 // Other
                 _ => {
@@ -149,20 +149,20 @@ impl<'a> LexicalAnalyzer<'a> {
                     }
                     match lexeme {
                         // Remaining Keywords
-                        "define" => return Ok(Token::Keyword(KeywordName::Define)),
-                        "domain" => return Ok(Token::Keyword(KeywordName::Domain)),
-                        "problem" => return Ok(Token::Keyword(KeywordName::Problem)),
+                        "define" => Ok(Token::Keyword(KeywordName::Define)),
+                        "domain" => Ok(Token::Keyword(KeywordName::Domain)),
+                        "problem" => Ok(Token::Keyword(KeywordName::Problem)),
                         _ => {
                             // Logical Operators
-                            match LexicalAnalyzer::is_operator(&lexeme) {
-                                Some(x) => return Ok(Token::Operator(x)),
+                            match LexicalAnalyzer::is_operator(lexeme) {
+                                Some(x) => Ok(Token::Operator(x)),
                                 // Identifier
                                 None => {
                                     if lexeme
                                         .chars()
                                         .all(|c| c.is_alphanumeric() || c == '_' || c == '-')
                                     {
-                                        return Ok(Token::Identifier(lexeme));
+                                        Ok(Token::Identifier(lexeme))
                                     } else {
                                         Err(LexicalError {
                                             error_type: LexicalErrorType::InvalidIdentifier,
@@ -216,18 +216,18 @@ impl<'a> LexicalAnalyzer<'a> {
             }
         }
         if is_invalid {
-            return Err(LexicalError {
+            Err(LexicalError {
                 error_type: LexicalErrorType::InvalidIdentifier,
                 lexeme: from_utf8(&self.program[init_cur_pos..cursor_pos])
                     .unwrap()
                     .to_string(),
                 position: self.last_token_pos.get(),
-            });
+            })
         } else {
-            return Ok((
+            Ok((
                 from_utf8(&self.program[init_cur_pos..cursor_pos]).unwrap(),
                 cursor_pos,
-            ));
+            ))
         }
     }
 
@@ -300,7 +300,7 @@ impl<'a> LexicalAnalyzer<'a> {
             "exists" => Some(OperationType::Exists),
             "imply" | "when" => Some(OperationType::Implication),
             // Stochastic operators
-            "probabilistic" => return Some(OperationType::Probabilistic),
+            "probabilistic" => Some(OperationType::Probabilistic),
             _ => None,
         }
     }
@@ -333,9 +333,6 @@ impl<'a> LexicalAnalyzer<'a> {
     }
 
     fn is_whitespace(c: &char) -> bool {
-        match c {
-            ' ' | '\t' | '\n' | '\r' => true,
-            _ => false,
-        }
+        matches!(c, ' ' | '\t' | '\n' | '\r')
     }
 }

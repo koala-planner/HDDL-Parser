@@ -37,7 +37,11 @@ impl Display for RecursionInfo {
         write!(f, "{}", headline)?;
         format_task_cycles(f, "Recursive tasks", &self.recursive_tasks)?;
         format_task_cycles(f, "Zero-Cost Recursive tasks", &self.eps_prefix_tasks)?;
-        format_task_cycles(f, "Zero-Cost Empty Recursive tasks", &self.empty_recursive_tasks)?;
+        format_task_cycles(
+            f,
+            "Zero-Cost Empty Recursive tasks",
+            &self.empty_recursive_tasks,
+        )?;
         format_task_cycles(
             f,
             "Growing Zero-Cost Recursive tasks",
@@ -45,13 +49,8 @@ impl Display for RecursionInfo {
         )?;
         format_task_cycles(f, "Grow and Shrink tasks", &self.grow_and_shrink_tasks)?;
         if !self.acyclic_tasks.is_empty() {
-            writeln!(
-                f,
-                "\n\tAcyclic tasks: {}",
-                self.acyclic_tasks.len(),
-            )?;
+            writeln!(f, "\n\tAcyclic tasks: {}", self.acyclic_tasks.len(),)?;
             write!(f, "\t\t{}", self.acyclic_tasks.join("\n\t\t"))?;
-                
         }
         Ok(())
     }
@@ -71,21 +70,6 @@ fn format_task_cycles(
     for initiator in tasks.keys() {
         let cycles = &tasks[initiator];
         write!(f, "\n\t\t{} ({} cycle(s))", initiator, cycles.len())?;
-        // for cycle in cycles {
-        //     write!(f, "\n\t\t\tCycle: ")?;
-        //     format_task_pairs(cycle, f)?;
-        // }
-    }
-    Ok(())
-}
-
-fn format_task_pairs(pairs: &[(String, String)], f: &mut Formatter<'_>) -> std::fmt::Result {
-    for (i, (task, method)) in pairs.iter().enumerate() {
-        if i != pairs.len() - 1 {
-            write!(f, "[{}]-({})->", task, method)?;
-        } else {
-            write!(f, "[{}]", task)?;
-        }
     }
     Ok(())
 }
@@ -103,7 +87,7 @@ impl Display for MetaData {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
         writeln!(f, "Description of Domain `{}`", self.domain_name)?;
         writeln!(f, "\tRecursion Structure: {}", self.recursion)?;
-        if self.nullables.len() == 0 {
+        if self.nullables.is_empty() {
             writeln!(f, "\tNullable Tasks: None")?;
         } else {
             writeln!(f, "\tNullable Tasks: {}", self.nullables.len())?;

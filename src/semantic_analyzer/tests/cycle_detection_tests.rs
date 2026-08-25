@@ -43,16 +43,14 @@ pub fn cyclic_method_ordering_test() {
                 Ok(_) => {
                     panic!("errors are not caught")
                 }
-                Err(error) => {
-                    match error {
-                        SemanticErrorType::CyclicOrderingDeclaration(pos) => {
-                            assert_eq!(pos.line, 21);
-                        }
-                        _ => {
-                            panic!("caught wrong error")
-                        }
+                Err(error) => match error {
+                    SemanticErrorType::CyclicOrderingDeclaration(pos) => {
+                        assert_eq!(pos.line, 21);
                     }
-                }
+                    _ => {
+                        panic!("caught wrong error")
+                    }
+                },
             }
         }
         _ => panic!(),
@@ -75,25 +73,22 @@ pub fn cyclic_types_test() {
     let lexer = LexicalAnalyzer::new(&program);
     let parser = Parser::new(lexer);
     let ast = parser.parse().unwrap();
-    match ast {
-        AbstractSyntaxTree::Domain(d) => {
-            let semantic_parser = DomainSemanticAnalyzer::new(&d);
-            match semantic_parser.verify_domain() {
-                Ok(_) => {
-                    panic!("errors are not caught")
-                }
-                Err(error) => {
-                    match error {
-                        SemanticErrorType::CyclicTypeDeclaration => {
-                            // TODO: assert locality in future
-                        }
-                        _ => {
-                            panic!("caught wrong error")
-                        }
+    if let AbstractSyntaxTree::Domain(d) = ast {
+        let semantic_parser = DomainSemanticAnalyzer::new(&d);
+        match semantic_parser.verify_domain() {
+            Ok(_) => {
+                panic!("errors are not caught")
+            }
+            Err(error) => {
+                match error {
+                    SemanticErrorType::CyclicTypeDeclaration => {
+                        // TODO: assert locality in future
+                    }
+                    _ => {
+                        panic!("caught wrong error")
                     }
                 }
             }
         }
-        _ => {}
     }
 }

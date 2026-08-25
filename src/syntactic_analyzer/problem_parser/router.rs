@@ -1,7 +1,10 @@
 use super::*;
 
-impl <'a> Parser<'a> {
-    pub fn parse_problem(&self, meta_data: ProblemDefinition<'a>) -> Result<ProblemAST<'a>, ParsingError> {
+impl<'a> Parser<'a> {
+    pub fn parse_problem(
+        &self,
+        meta_data: ProblemDefinition<'a>,
+    ) -> Result<ProblemAST<'a>, ParsingError> {
         let mut syntax_tree = ProblemAST::new(meta_data.problem_name, meta_data.domain_name);
         loop {
             match self.tokenizer.get_token()? {
@@ -29,10 +32,7 @@ impl <'a> Parser<'a> {
                                         );
                                     }
                                     None => {
-                                        syntax_tree.add_object(
-                                            object.name,
-                                            object.name_pos,
-                                        );
+                                        syntax_tree.add_object(object.name, object.name_pos);
                                     }
                                 }
                             }
@@ -54,8 +54,7 @@ impl <'a> Parser<'a> {
                         }
                         token => {
                             let error = SyntacticError {
-                                expected: "a keyword for block definition"
-                                    .to_string(),
+                                expected: "a keyword for block definition".to_string(),
                                 found: token.to_string(),
                                 position: self.tokenizer.get_last_token_position(),
                             };

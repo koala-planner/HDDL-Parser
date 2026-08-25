@@ -32,7 +32,7 @@ impl<'a> Parser<'a> {
                     found: token.to_string(),
                     position: self.tokenizer.get_last_token_position(),
                 };
-                return Err(ParsingError::Syntactic(error));
+                Err(ParsingError::Syntactic(error))
             }
         }
     }
@@ -42,17 +42,19 @@ impl<'a> Parser<'a> {
         let mut variant = FileVariant::MaybeNotHDDL;
         if let Ok(Token::Punctuator(PunctuationType::LParentheses)) = self.tokenizer.get_token() {
             if let Ok(Token::Keyword(KeywordName::Define)) = self.tokenizer.get_token() {
-                if let Ok(Token::Punctuator(PunctuationType::LParentheses)) = self.tokenizer.get_token() {
+                if let Ok(Token::Punctuator(PunctuationType::LParentheses)) =
+                    self.tokenizer.get_token()
+                {
                     match self.tokenizer.get_token() {
                         Ok(Token::Keyword(KeywordName::Domain)) => variant = FileVariant::Domain,
-                        Ok(Token::Keyword(KeywordName::Problem)) => variant =  FileVariant::Problem,
+                        Ok(Token::Keyword(KeywordName::Problem)) => variant = FileVariant::Problem,
                         _ => {}
                     }
                 }
             }
         }
         self.tokenizer.reset_cursor();
-        return variant;
+        variant
     }
 
     fn parse_document_type(&self) -> Result<DefinitionType<'a>, ParsingError> {
@@ -64,19 +66,15 @@ impl<'a> Parser<'a> {
                     Token::Punctuator(PunctuationType::LParentheses) => {
                         // match either 'domain' or 'problem'
                         match self.tokenizer.get_token()? {
-                            Token::Keyword(KeywordName::Domain) => {
-                                return self.parse_domain_header();
-                            }
-                            Token::Keyword(KeywordName::Problem) => {
-                                return self.parse_problem_header();
-                            }
+                            Token::Keyword(KeywordName::Domain) => self.parse_domain_header(),
+                            Token::Keyword(KeywordName::Problem) => self.parse_problem_header(),
                             token => {
                                 let error = SyntacticError {
                                     expected: "either keyword 'domain' or 'problem'".to_string(),
                                     found: token.to_string(),
                                     position: self.tokenizer.get_last_token_position(),
                                 };
-                                return Err(ParsingError::Syntactic(error));
+                                Err(ParsingError::Syntactic(error))
                             }
                         }
                     }
@@ -86,7 +84,7 @@ impl<'a> Parser<'a> {
                             found: token.to_string(),
                             position: self.tokenizer.get_last_token_position(),
                         };
-                        return Err(ParsingError::Syntactic(error));
+                        Err(ParsingError::Syntactic(error))
                     }
                 }
             }
@@ -96,7 +94,7 @@ impl<'a> Parser<'a> {
                     found: token.to_string(),
                     position: self.tokenizer.get_last_token_position(),
                 };
-                return Err(ParsingError::Syntactic(error));
+                Err(ParsingError::Syntactic(error))
             }
         }
     }
@@ -107,7 +105,7 @@ impl<'a> Parser<'a> {
                 // match closing paranthesis
                 match self.tokenizer.get_token()? {
                     Token::Punctuator(PunctuationType::RParentheses) => {
-                        return Ok(DefinitionType::Domain(domain_name));
+                        Ok(DefinitionType::Domain(domain_name))
                     }
                     token => {
                         let error = SyntacticError {
@@ -115,7 +113,7 @@ impl<'a> Parser<'a> {
                             found: token.to_string(),
                             position: self.tokenizer.get_last_token_position(),
                         };
-                        return Err(ParsingError::Syntactic(error));
+                        Err(ParsingError::Syntactic(error))
                     }
                 }
             }
@@ -125,7 +123,7 @@ impl<'a> Parser<'a> {
                     found: token.to_string(),
                     position: self.tokenizer.get_last_token_position(),
                 };
-                return Err(ParsingError::Syntactic(error));
+                Err(ParsingError::Syntactic(error))
             }
         }
     }
@@ -147,21 +145,19 @@ impl<'a> Parser<'a> {
                                                 match self.tokenizer.get_token()? {
                                                     Token::Punctuator(
                                                         PunctuationType::RParentheses,
-                                                    ) => {
-                                                        return Ok(DefinitionType::Problem(
-                                                            ProblemDefinition {
-                                                                domain_name,
-                                                                problem_name,
-                                                            },
-                                                        ));
-                                                    }
+                                                    ) => Ok(DefinitionType::Problem(
+                                                        ProblemDefinition {
+                                                            domain_name,
+                                                            problem_name,
+                                                        },
+                                                    )),
                                                     token => {
                                                         let error = SyntacticError {
                                                             expected: format!("the block of the definition of problem '{}' is not closed with ')'", problem_name),
                                                             found: token.to_string(),
                                                             position: self.tokenizer.get_last_token_position(),
                                                         };
-                                                        return Err(ParsingError::Syntactic(error));
+                                                        Err(ParsingError::Syntactic(error))
                                                     }
                                                 }
                                             }
@@ -173,7 +169,7 @@ impl<'a> Parser<'a> {
                                                         .tokenizer
                                                         .get_last_token_position(),
                                                 };
-                                                return Err(ParsingError::Syntactic(error));
+                                                Err(ParsingError::Syntactic(error))
                                             }
                                         }
                                     }
@@ -183,7 +179,7 @@ impl<'a> Parser<'a> {
                                             found: token.to_string(),
                                             position: self.tokenizer.get_last_token_position(),
                                         };
-                                        return Err(ParsingError::Syntactic(error));
+                                        Err(ParsingError::Syntactic(error))
                                     }
                                 }
                             }
@@ -193,7 +189,7 @@ impl<'a> Parser<'a> {
                                     found: token.to_string(),
                                     position: self.tokenizer.get_last_token_position(),
                                 };
-                                return Err(ParsingError::Syntactic(error));
+                                Err(ParsingError::Syntactic(error))
                             }
                         }
                     }
@@ -203,7 +199,7 @@ impl<'a> Parser<'a> {
                             found: token.to_string(),
                             position: self.tokenizer.get_last_token_position(),
                         };
-                        return Err(ParsingError::Syntactic(error));
+                        Err(ParsingError::Syntactic(error))
                     }
                 }
             }
@@ -213,7 +209,7 @@ impl<'a> Parser<'a> {
                     found: token.to_string(),
                     position: self.tokenizer.get_last_token_position(),
                 };
-                return Err(ParsingError::Syntactic(error));
+                Err(ParsingError::Syntactic(error))
             }
         }
     }
@@ -239,6 +235,6 @@ impl<'a> Parser<'a> {
                 }
             }
         }
-        return Ok(requirements);
+        Ok(requirements)
     }
 }

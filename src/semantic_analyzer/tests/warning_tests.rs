@@ -1,7 +1,7 @@
-use super:: *;
+use super::*;
 
 #[test]
-pub fn primitive_refinement_test () {
+pub fn primitive_refinement_test() {
     let program = String::from(
         "(define (domain bal)
             (:predicates 
@@ -48,12 +48,12 @@ pub fn primitive_refinement_test () {
                             assert_eq!(info.symbol, "abs_3");
                             assert_eq!(info.position.line, 15);
                         }
-                        _ => panic!()
+                        _ => panic!(),
                     }
                 }
-                _ => panic!()
+                _ => panic!(),
             }
         }
-        _ => panic!()
+        _ => panic!(),
     }
 }

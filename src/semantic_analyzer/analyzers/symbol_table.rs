@@ -1,7 +1,7 @@
 use super::*;
-use std::collections::HashSet;
 use petgraph::prelude::GraphMap;
 use petgraph::Directed;
+use std::collections::HashSet;
 
 #[derive(Debug)]
 pub struct SymbolTable<'a> {

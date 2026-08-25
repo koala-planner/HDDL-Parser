@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::fs;
 use std::sync::Arc;
 
 use tokio::sync::RwLock;
@@ -55,9 +54,7 @@ impl LanguageServer for RequestHandler {
         })
     }
 
-    async fn initialized(&self, _: InitializedParams) {
-        ()
-    }
+    async fn initialized(&self, _: InitializedParams) {}
 
     async fn shutdown(&self) -> tower_lsp::jsonrpc::Result<()> {
         Ok(())
@@ -67,7 +64,8 @@ impl LanguageServer for RequestHandler {
         self.sync(
             params.text_document.uri,
             params.text_document.text.into_bytes(),
-        ).await;
+        )
+        .await;
     }
 
     async fn did_save(&self, params: DidSaveTextDocumentParams) {
@@ -107,7 +105,7 @@ impl LanguageServer for RequestHandler {
                                 MessageType::LOG,
                                 format!(
                                     "{} is a domain. Attempting to diagnose.",
-                                    params.text_document.uri.to_string()
+                                    params.text_document.uri
                                 ),
                             )
                             .await;
@@ -121,21 +119,18 @@ impl LanguageServer for RequestHandler {
                             match entry.path().extension() {
                                 Some(extension) if (extension == "hddl" || extension == "pddl") => {
                                     let content = tokio::fs::read(entry.path()).await.unwrap();
-                                    match classify_file(&content) {
-                                        FileVariant::Domain => {
-                                            self.client
-                                                .log_message(
-                                                    MessageType::LOG,
-                                                    format!(
-                                                        "{} is the domain for {}. Attempting to diagnose.",
-                                                        root_folder.to_str().unwrap(),
-                                                        params.text_document.uri.to_string()
-                                                    ),
-                                                ).await;
-                                            return Ok(diagnose_problem(Some(&content), document));
-                                        }
-                                        // File is not the domain
-                                        _ => {}
+                                    if let FileVariant::Domain = classify_file(&content) {
+                                        self.client
+                                            .log_message(
+                                                MessageType::LOG,
+                                                format!(
+                                                    "{} is the domain for {}. Attempting to diagnose.",
+                                                    root_folder.to_str().unwrap(),
+                                                    params.text_document.uri
+                                                ),
+                                            )
+                                            .await;
+                                        return Ok(diagnose_problem(Some(&content), document));
                                     }
                                 }
                                 // File is not .PDDL or .HDDL
@@ -161,7 +156,7 @@ impl LanguageServer for RequestHandler {
                                 MessageType::LOG,
                                 format!(
                                     "{} does not have proper HDDL header. Ignoring diagnostic request.",
-                                    params.text_document.uri.to_string()
+                                    params.text_document.uri
                                 ),
                             )
                             .await;

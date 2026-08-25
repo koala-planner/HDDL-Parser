@@ -15,17 +15,25 @@ pub enum WarningType {
     // TODO: implement
     UnusedParameter(String),
     // TODO: implement
-    RedundantEffect
+    RedundantEffect,
 }
 
 impl std::fmt::Display for WarningType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
         match self {
             Self::ImmutablePredicate(predicate) => {
-                write!(f, "Predicate {} does not appear in the effect of any action", predicate)
+                write!(
+                    f,
+                    "Predicate {} does not appear in the effect of any action",
+                    predicate
+                )
             }
             Self::NoPrimitiveRefinement(info) => {
-                write!(f, "line {}: compound task {} does not have a primitive refinement", info.position.line, info.symbol)
+                write!(
+                    f,
+                    "line {}: compound task {} does not have a primitive refinement",
+                    info.position.line, info.symbol
+                )
             }
             Self::UnusedType(type_name) => {
                 write!(f, "Type {} is declared, but never used", type_name)
