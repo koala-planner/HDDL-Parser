@@ -17,37 +17,37 @@ fn output_text(output: &Output) -> (String, String) {
 }
 
 #[test]
-fn cli_missing_input_current_behavior_exits_zero_and_writes_error() {
+fn cli_missing_input_exits_nonzero_and_writes_error_to_stderr() {
     let output = run_hddl_analyzer(&["verify", "/tmp/definitely-missing-hddl-parser-input.hddl"]);
     let (_, stderr) = output_text(&output);
 
-    assert_eq!(output.status.code(), Some(0));
+    assert_ne!(output.status.code(), Some(0));
     assert!(stderr.contains("[Error]"));
     assert!(stderr.contains("No such file or directory"));
 }
 
 #[test]
-fn cli_unsupported_extension_current_behavior_exits_zero_and_writes_error() {
+fn cli_unsupported_extension_exits_nonzero_and_writes_error_to_stderr() {
     let output = run_hddl_analyzer(&["verify", "Cargo.toml"]);
     let (_, stderr) = output_text(&output);
 
-    assert_eq!(output.status.code(), Some(0));
+    assert_ne!(output.status.code(), Some(0));
     assert!(stderr.contains("[Error]"));
     assert!(stderr.contains("unrecognized input extension '.toml'"));
 }
 
 #[test]
-fn cli_semantic_failure_current_behavior_exits_zero_and_writes_error() {
+fn cli_semantic_failure_exits_nonzero_and_writes_error_to_stderr() {
     let output = run_hddl_analyzer(&["verify", "tests/flawed_domains/undefined-task-domain.hddl"]);
     let (_, stderr) = output_text(&output);
 
-    assert_eq!(output.status.code(), Some(0));
+    assert_ne!(output.status.code(), Some(0));
     assert!(stderr.contains("[Error]"));
     assert!(stderr.contains("subtask undefined_task is not defined"));
 }
 
 #[test]
-fn cli_output_write_failure_current_behavior_exits_zero_and_writes_error() {
+fn cli_output_write_failure_exits_nonzero_and_writes_error_to_stderr() {
     let output = run_hddl_analyzer(&[
         "convert",
         "tests/ipc/Blocksworld-GTOHP/domain.hddl",
@@ -58,13 +58,13 @@ fn cli_output_write_failure_current_behavior_exits_zero_and_writes_error() {
     ]);
     let (_, stderr) = output_text(&output);
 
-    assert_eq!(output.status.code(), Some(0));
+    assert_ne!(output.status.code(), Some(0));
     assert!(stderr.contains("[Error]"));
     assert!(stderr.contains("Is a directory"));
 }
 
 #[test]
-fn cli_known_good_verification_current_behavior_exits_zero_and_prints_success() {
+fn cli_known_good_verification_exits_zero_and_prints_success_to_stdout() {
     let output = run_hddl_analyzer(&["verify", "tests/ipc/Blocksworld-GTOHP/domain.hddl"]);
     let (stdout, stderr) = output_text(&output);
 
