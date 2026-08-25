@@ -152,7 +152,8 @@ impl<'a> Parser<'a> {
                                 }
                                 token => {
                                     let error = SyntacticError {
-                                        expected: "')' to close the existential statement".to_string(),
+                                        expected: "')' to close the existential statement"
+                                            .to_string(),
                                         found: token.to_string(),
                                         position: self.tokenizer.get_last_token_position(),
                                     };
@@ -162,7 +163,8 @@ impl<'a> Parser<'a> {
                         }
                         token => {
                             let error = SyntacticError {
-                                expected: "'(' after existential quantification keyword".to_string(),
+                                expected: "'(' after existential quantification keyword"
+                                    .to_string(),
                                 found: token.to_string(),
                                 position: self.tokenizer.get_last_token_position(),
                             };
@@ -195,17 +197,23 @@ impl<'a> Parser<'a> {
                                     let f = self.parse_formula()?;
                                     if let Formula::Empty = f {
                                         let error = SyntacticError {
-                                            expected: "a formula following the probability".to_string(),
+                                            expected: "a formula following the probability"
+                                                .to_string(),
                                             found: ")".to_string(),
                                             position: self.tokenizer.get_last_token_position(),
                                         };
                                         return Err(ParsingError::Syntactic(error));
                                     }
-                                    branches.push(Box::new(Formula::Probabilistic(probability, Box::new(f))));
+                                    branches.push(Box::new(Formula::Probabilistic(
+                                        probability,
+                                        Box::new(f),
+                                    )));
                                 }
                                 token => {
                                     let error = SyntacticError {
-                                        expected: "a probability or ')' to close the probabilistic block".to_string(),
+                                        expected:
+                                            "a probability or ')' to close the probabilistic block"
+                                                .to_string(),
                                         found: token.to_string(),
                                         position: self.tokenizer.get_last_token_position(),
                                     };

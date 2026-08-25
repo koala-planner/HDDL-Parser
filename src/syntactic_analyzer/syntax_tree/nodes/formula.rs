@@ -319,17 +319,11 @@ impl<'a> Formula<'a> {
             Formula::And(inner) | Formula::Or(inner) | Formula::Xor(inner) => {
                 let any_quantified = inner.iter().map(|x| x.is_quantified()).any(|x| x);
                 return any_quantified;
-            },
-            Formula::Exists(_, _) | Formula::ForAll(_, _) => true,
-            Formula::Not(inner) => {
-                inner.is_quantified()
-            },
-            Formula::Imply(lhs, rhs ) => {
-                lhs.is_quantified() || rhs.is_quantified()
-            },
-            Formula::Probabilistic(_, inner ) => {
-                inner.is_quantified()
             }
+            Formula::Exists(_, _) | Formula::ForAll(_, _) => true,
+            Formula::Not(inner) => inner.is_quantified(),
+            Formula::Imply(lhs, rhs) => lhs.is_quantified() || rhs.is_quantified(),
+            Formula::Probabilistic(_, inner) => inner.is_quantified(),
         }
     }
 

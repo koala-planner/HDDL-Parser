@@ -13,7 +13,7 @@ impl<'a> Parser<'a> {
                 Token::Punctuator(PunctuationType::RParentheses) => {
                     finished = true;
                 }
-                token  => {
+                token => {
                     let error = SyntacticError {
                         expected: "predicate definition".to_string(),
                         found: token.to_string(),

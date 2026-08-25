@@ -68,7 +68,7 @@ impl<'a> TDG<'a> {
         }
     }
 
-    pub fn reachable(&self, task_name: &str) -> ReachableSet {
+    pub fn reachable(&self, task_name: &str) -> ReachableSet<'_> {
         let mut reach_t = HashSet::new();
         let task_index = match self
             .tasks
@@ -397,7 +397,7 @@ impl<'a> TDG<'a> {
         self.tasks
             .iter()
             .enumerate()
-            .find(|(_, (name, t_type))| *name == task_name)
+            .find(|(_, (name, _))| *name == task_name)
             .unwrap()
             .0
     }

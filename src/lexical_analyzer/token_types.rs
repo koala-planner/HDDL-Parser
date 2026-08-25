@@ -10,10 +10,10 @@ pub enum Token<'a> {
     Operator(OperationType),
     Punctuator(PunctuationType),
     Requirement(RequirementType),
-    EOF
+    EOF,
 }
 
-impl <'a> fmt::Display for Token<'a> {
+impl<'a> fmt::Display for Token<'a> {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
         match self {
             Token::Keyword(keyword) => write!(fmt, "Keyword {}", keyword),
@@ -63,7 +63,6 @@ pub enum OperationType {
     LessThanOrEqual,
     GreaterThanOrEqual,
 }
-
 
 impl fmt::Display for OperationType {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
@@ -140,11 +139,11 @@ pub enum KeywordName {
     Method,
     Precondition,
     Effect,
-    Subtasks, // either "tasks" or "subtasks"
+    Subtasks,        // either "tasks" or "subtasks"
     OrderedSubtasks, // either "ordered-tasks" or "ordered-subtasks"
     Ordering,
     Constraints,
-    Goal
+    Goal,
 }
 
 impl fmt::Display for KeywordName {
@@ -181,14 +180,14 @@ impl fmt::Display for KeywordName {
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub enum NumberType {
     Real(f64),
-    Integer(i64)
+    Integer(i64),
 }
 
 impl fmt::Display for NumberType {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             NumberType::Integer(n) => return write!(f, "{}", n),
-            NumberType::Real(r) => return write!(f, "{}", r)
+            NumberType::Real(r) => return write!(f, "{}", r),
         }
     }
 }

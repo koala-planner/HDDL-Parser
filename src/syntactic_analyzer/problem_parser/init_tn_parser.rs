@@ -38,7 +38,8 @@ impl<'a> Parser<'a> {
                             subtasks: vec![],
                             ordering_pos: None,
                             orderings: TaskOrdering::Partial(vec![]),
-                            constraints: None },
+                            constraints: None,
+                        },
                     });
                 }
                 token => {
@@ -339,12 +340,8 @@ impl<'a> Parser<'a> {
     fn parse_subtask(&self) -> Result<Subtask<'a>, ParsingError> {
         match self.tokenizer.get_token()? {
             Token::Identifier(id) => {
-                let id_symbol = Symbol::new(
-                    id,
-                    self.tokenizer.get_last_token_position(),
-                    None,
-                    None
-                );
+                let id_symbol =
+                    Symbol::new(id, self.tokenizer.get_last_token_position(), None, None);
                 let mut terms = vec![];
                 match self.tokenizer.get_token()? {
                     Token::Punctuator(PunctuationType::LParentheses) => {
@@ -354,7 +351,7 @@ impl<'a> Parser<'a> {
                                     task,
                                     self.tokenizer.get_last_token_position(),
                                     None,
-                                    None
+                                    None,
                                 );
                                 loop {
                                     match self.tokenizer.get_token()? {
@@ -363,7 +360,7 @@ impl<'a> Parser<'a> {
                                                 term,
                                                 self.tokenizer.get_last_token_position(),
                                                 None,
-                                                None
+                                                None,
                                             ));
                                         }
                                         Token::Punctuator(PunctuationType::RParentheses) => {
@@ -417,19 +414,19 @@ impl<'a> Parser<'a> {
                     }
                     Token::Identifier(term) => {
                         terms.push(Symbol::new(
-                            term, 
-                            self.tokenizer.get_last_token_position(), 
-                            None, 
-                            None
+                            term,
+                            self.tokenizer.get_last_token_position(),
+                            None,
+                            None,
                         ));
                         loop {
                             match self.tokenizer.get_token()? {
                                 Token::Identifier(term) => {
                                     terms.push(Symbol::new(
-                                        term, 
-                                        self.tokenizer.get_last_token_position(), 
-                                        None, 
-                                        None
+                                        term,
+                                        self.tokenizer.get_last_token_position(),
+                                        None,
+                                        None,
                                     ));
                                 }
                                 Token::Punctuator(PunctuationType::RParentheses) => {

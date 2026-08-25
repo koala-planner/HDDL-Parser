@@ -1,5 +1,5 @@
 use clap::Parser;
-use hddl_analyzer::{Input, ParsingError, Transformation, Transpiler};
+use hddl_analyzer::{Input, ParsingError, Transpiler};
 use std::{
     env, fs,
     path::{Path, PathBuf},
@@ -57,7 +57,7 @@ impl InputData {
         }
     }
 
-    fn transpiler(&self) -> Result<Transpiler, ParsingError> {
+    fn transpiler(&self) -> Result<Transpiler<'_>, ParsingError> {
         Transpiler::from_input(match self {
             InputData::Json(json) => Input::Json(json),
             InputData::Hddl { domain, problem } => Input::Hddl {

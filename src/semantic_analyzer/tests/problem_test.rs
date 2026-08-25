@@ -138,7 +138,8 @@ fn get_domain() -> Vec<u8> {
 #[test]
 pub fn p_undeclared_type_test() {
     let program = get_domain();
-    let problem = String::from("(define (problem p1)
+    let problem = String::from(
+        "(define (problem p1)
             (:domain d)
             (:objects
                 x1 x2 - place
@@ -151,7 +152,9 @@ pub fn p_undeclared_type_test() {
                     (abs_1)
                 )
             )
-    ").into_bytes();
+    ",
+    )
+    .into_bytes();
     let lexer = LexicalAnalyzer::new(&program);
     let parser = Parser::new(lexer);
     let d_ast = parser.parse().unwrap();
@@ -169,28 +172,27 @@ pub fn p_undeclared_type_test() {
                         Ok(_) => {
                             panic!("error not found")
                         }
-                        Err(d) => {
-                            match d {
-                                SemanticErrorType::UndefinedType(ty) => {
-                                    assert_eq!(ty.symbol, "car");
-                                    assert_eq!(ty.position.line, 6);
-                                },
-                                _ => panic!()
+                        Err(d) => match d {
+                            SemanticErrorType::UndefinedType(ty) => {
+                                assert_eq!(ty.symbol, "car");
+                                assert_eq!(ty.position.line, 6);
                             }
-                        }
+                            _ => panic!(),
+                        },
                     }
                 }
-                _ => panic!()
+                _ => panic!(),
             }
         }
-        AbstractSyntaxTree::Problem(_) => panic!()
+        AbstractSyntaxTree::Problem(_) => panic!(),
     }
 }
 
 #[test]
 pub fn p_undefined_object_test() {
     let program = get_domain();
-    let problem = String::from("(define (problem p1)
+    let problem = String::from(
+        "(define (problem p1)
             (:domain d)
             (:objects
                 x1 x2 - place
@@ -202,7 +204,9 @@ pub fn p_undefined_object_test() {
                     (do_get_truck truck1 x3)
                 )
             )
-    ").into_bytes();
+    ",
+    )
+    .into_bytes();
     let lexer = LexicalAnalyzer::new(&program);
     let parser = Parser::new(lexer);
     let d_ast = parser.parse().unwrap();
@@ -220,28 +224,27 @@ pub fn p_undefined_object_test() {
                         Ok(_) => {
                             panic!("error not found")
                         }
-                        Err(d) => {
-                            match d {
-                                SemanticErrorType::UndefinedObject(undefined) => {
-                                    assert_eq!(undefined.symbol, "x3");
-                                    assert_eq!(undefined.position.line, 10);
-                                },
-                                token => panic!("{:?}", token)
+                        Err(d) => match d {
+                            SemanticErrorType::UndefinedObject(undefined) => {
+                                assert_eq!(undefined.symbol, "x3");
+                                assert_eq!(undefined.position.line, 10);
                             }
-                        }
+                            token => panic!("{:?}", token),
+                        },
                     }
                 }
-                _ => panic!()
+                _ => panic!(),
             }
         }
-        AbstractSyntaxTree::Problem(_) => panic!()
+        AbstractSyntaxTree::Problem(_) => panic!(),
     }
 }
 
 #[test]
 pub fn p_duplicate_object_definition_test() {
     let program = get_domain();
-    let problem = String::from("
+    let problem = String::from(
+        "
         (define (problem p1)
             (:domain d)
             (:objects
@@ -255,7 +258,9 @@ pub fn p_duplicate_object_definition_test() {
                     (abs_1)
                 )
             )
-    ").into_bytes();
+    ",
+    )
+    .into_bytes();
     let lexer = LexicalAnalyzer::new(&program);
     let parser = Parser::new(lexer);
     let d_ast = parser.parse().unwrap();
@@ -273,22 +278,20 @@ pub fn p_duplicate_object_definition_test() {
                         Ok(_) => {
                             panic!("error not found")
                         }
-                        Err(d) => {
-                            match d {
-                                SemanticErrorType::DuplicateObjectDeclaration(ty) => {
-                                    if ty.symbol != "x1" {
-                                        panic!("wrong error")
-                                    }
-                                },
-                                _ => panic!()
+                        Err(d) => match d {
+                            SemanticErrorType::DuplicateObjectDeclaration(ty) => {
+                                if ty.symbol != "x1" {
+                                    panic!("wrong error")
+                                }
                             }
-                        }
+                            _ => panic!(),
+                        },
                     }
                 }
-                _ => panic!()
+                _ => panic!(),
             }
         }
-        AbstractSyntaxTree::Problem(_) => panic!()
+        AbstractSyntaxTree::Problem(_) => panic!(),
     }
 }
 
@@ -315,7 +318,9 @@ pub fn p_cyclic_init_tn_ordering_test() {
                     (< t3 t1)
                 )
             )
-    ").into_bytes();
+    ",
+    )
+    .into_bytes();
     let lexer = LexicalAnalyzer::new(&program);
     let parser = Parser::new(lexer);
     let d_ast = parser.parse().unwrap();
@@ -333,27 +338,26 @@ pub fn p_cyclic_init_tn_ordering_test() {
                         Ok(_) => {
                             panic!("error not found")
                         }
-                        Err(d) => {
-                            match d {
-                                SemanticErrorType::CyclicOrderingDeclaration(pos) => {
-                                    assert_eq!(pos.line, 14);
-                                },
-                                _ => panic!()
+                        Err(d) => match d {
+                            SemanticErrorType::CyclicOrderingDeclaration(pos) => {
+                                assert_eq!(pos.line, 14);
                             }
-                        }
+                            _ => panic!(),
+                        },
                     }
                 }
-                _ => panic!()
+                _ => panic!(),
             }
         }
-        AbstractSyntaxTree::Problem(_) => panic!()
+        AbstractSyntaxTree::Problem(_) => panic!(),
     }
 }
 
 #[test]
 pub fn p_inconsistent_goal_predicate_test() {
     let program = get_domain();
-    let problem = String::from("
+    let problem = String::from(
+        "
         (define (problem p1)
             (:domain d)
             (:objects
@@ -370,7 +374,9 @@ pub fn p_inconsistent_goal_predicate_test() {
                     (at truck1)
                 )
             )
-    ").into_bytes();
+    ",
+    )
+    .into_bytes();
     let lexer = LexicalAnalyzer::new(&program);
     let parser = Parser::new(lexer);
     let d_ast = parser.parse().unwrap();
@@ -388,27 +394,26 @@ pub fn p_inconsistent_goal_predicate_test() {
                         Ok(_) => {
                             panic!("error not found")
                         }
-                        Err(d) => {
-                            match d {
-                                SemanticErrorType::UndefinedPredicate(x) => {
-                                    assert_eq!(x.symbol, "at");
-                                },
-                                _ => panic!()
+                        Err(d) => match d {
+                            SemanticErrorType::UndefinedPredicate(x) => {
+                                assert_eq!(x.symbol, "at");
                             }
-                        }
+                            _ => panic!(),
+                        },
                     }
                 }
-                _ => panic!()
+                _ => panic!(),
             }
         }
-        AbstractSyntaxTree::Problem(_) => panic!()
+        AbstractSyntaxTree::Problem(_) => panic!(),
     }
 }
 
 #[test]
 pub fn p_inconsistent_init_predicate_test() {
     let program = get_domain();
-    let problem = String::from("
+    let problem = String::from(
+        "
         (define (problem p1)
             (:domain d)
             (:objects
@@ -423,7 +428,9 @@ pub fn p_inconsistent_init_predicate_test() {
             (:init
                 (at truck1 crate1)
             )
-    ").into_bytes();
+    ",
+    )
+    .into_bytes();
     let lexer = LexicalAnalyzer::new(&program);
     let parser = Parser::new(lexer);
     let d_ast = parser.parse().unwrap();
@@ -441,29 +448,28 @@ pub fn p_inconsistent_init_predicate_test() {
                         Ok(_) => {
                             panic!("error not found")
                         }
-                        Err(d) => {
-                            match d {
-                                SemanticErrorType::InconsistentPredicateArgType(ty)=> {
-                                    if ty.var_name != "at" {
-                                        panic!("wrong error")
-                                    }
-                                },
-                                token => panic!("{:?}", token)
+                        Err(d) => match d {
+                            SemanticErrorType::InconsistentPredicateArgType(ty) => {
+                                if ty.var_name != "at" {
+                                    panic!("wrong error")
+                                }
                             }
-                        }
+                            token => panic!("{:?}", token),
+                        },
                     }
                 }
-                _ => panic!()
+                _ => panic!(),
             }
         }
-        AbstractSyntaxTree::Problem(_) => panic!()
+        AbstractSyntaxTree::Problem(_) => panic!(),
     }
 }
 
 #[test]
 pub fn p_inconsistent_subtask_test() {
     let program = get_domain();
-    let problem = String::from("
+    let problem = String::from(
+        "
         (define (problem p1)
             (:domain d)
             (:objects
@@ -477,7 +483,9 @@ pub fn p_inconsistent_subtask_test() {
                     (t1 (do_get_truck truck1 truck2))
                 )
             )
-    ").into_bytes();
+    ",
+    )
+    .into_bytes();
     let lexer = LexicalAnalyzer::new(&program);
     let parser = Parser::new(lexer);
     let d_ast = parser.parse().unwrap();
@@ -495,21 +503,19 @@ pub fn p_inconsistent_subtask_test() {
                         Ok(_) => {
                             panic!("error not found")
                         }
-                        Err(d) => {
-                            match d {
-                                SemanticErrorType::InconsistentTaskArgType(ty)=> {
-                                    if ty.var_name != "do_get_truck" {
-                                        panic!("wrong error")
-                                    }
-                                },
-                                token => panic!("{:?}", token)
+                        Err(d) => match d {
+                            SemanticErrorType::InconsistentTaskArgType(ty) => {
+                                if ty.var_name != "do_get_truck" {
+                                    panic!("wrong error")
+                                }
                             }
-                        }
+                            token => panic!("{:?}", token),
+                        },
                     }
                 }
-                _ => panic!()
+                _ => panic!(),
             }
         }
-        AbstractSyntaxTree::Problem(_) => panic!()
+        AbstractSyntaxTree::Problem(_) => panic!(),
     }
 }

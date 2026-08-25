@@ -4,10 +4,7 @@ use super::*;
 
 #[test]
 pub fn untyped_parameter_accepts_any_argument_test() {
-    let types = Some(vec![Symbol::new_untyped(
-        "block",
-        TokenPosition::default()
-    )]);
+    let types = Some(vec![Symbol::new_untyped("block", TokenPosition::default())]);
     let checker = TypeChecker::new(&types);
     assert!(checker.is_var_type_consistent(Some("block"), None));
     assert!(!checker.is_var_type_consistent(None, Some("block")));
@@ -16,7 +13,7 @@ pub fn untyped_parameter_accepts_any_argument_test() {
 }
 
 #[test]
-pub fn basic_type_checking_test () {
+pub fn basic_type_checking_test() {
     let program = String::from(
         "(define (domain bal)
             (:types
@@ -44,27 +41,25 @@ pub fn basic_type_checking_test () {
                 Ok(_) => {
                     panic!("errors are not caught")
                 }
-                Err(error) => {
-                    match error {
-                        SemanticErrorType::InconsistentPredicateArgType(t_err) => {
-                            assert_eq!(t_err.var_name, "?l1");
-                            assert_eq!(t_err.found.unwrap(), "t2");
-                            assert_eq!(t_err.expected.unwrap(), "t1");
-                            assert_eq!(t_err.position.line, 12);
-                        }
-                        _ => {
-                            panic!("caught wrong error")
-                        }
+                Err(error) => match error {
+                    SemanticErrorType::InconsistentPredicateArgType(t_err) => {
+                        assert_eq!(t_err.var_name, "?l1");
+                        assert_eq!(t_err.found.unwrap(), "t2");
+                        assert_eq!(t_err.expected.unwrap(), "t1");
+                        assert_eq!(t_err.position.line, 12);
                     }
-                }
+                    _ => {
+                        panic!("caught wrong error")
+                    }
+                },
             }
         }
-        _ => panic!()
+        _ => panic!(),
     }
 }
 
 #[test]
-pub fn effect_type_checking_test () {
+pub fn effect_type_checking_test() {
     let program = String::from(
         "(define (domain bal)
             (:types
@@ -90,18 +85,18 @@ pub fn effect_type_checking_test () {
         AbstractSyntaxTree::Domain(d) => {
             let semantic_parser = DomainSemanticAnalyzer::new(&d);
             match semantic_parser.verify_domain() {
-                Ok(_) => {        }
+                Ok(_) => {}
                 Err(error) => {
                     panic!("{:?}", error)
                 }
             }
         }
-        _ => panic!()
+        _ => panic!(),
     }
 }
 
 #[test]
-pub fn inconsistent_predicate_arity_test () {
+pub fn inconsistent_predicate_arity_test() {
     let program = String::from(
         "(define (domain bal)
             (:types
@@ -135,15 +130,17 @@ pub fn inconsistent_predicate_arity_test () {
                     assert_eq!(x.found_arity, 2);
                     assert_eq!(x.position.line, 14)
                 }
-                _ => {panic!()}
+                _ => {
+                    panic!()
+                }
             }
         }
-        _ => panic!()
+        _ => panic!(),
     }
 }
 
 #[test]
-pub fn inconsistent_subtask_arity_test () {
+pub fn inconsistent_subtask_arity_test() {
     let program = String::from(
         "(define (domain bal)
             (:types
@@ -185,16 +182,15 @@ pub fn inconsistent_subtask_arity_test () {
                     assert_eq!(x.position.line, 21);
                 }
                 Err(token) => panic!("{:?}", token),
-                Ok(_) => panic!("error not found")
+                Ok(_) => panic!("error not found"),
             }
         }
-        _ => panic!()
+        _ => panic!(),
     }
-    
 }
 
 #[test]
-pub fn method_prec_type_checking_test () {
+pub fn method_prec_type_checking_test() {
     let program = String::from(
         "(define (domain bal)
             (:types
@@ -227,18 +223,18 @@ pub fn method_prec_type_checking_test () {
         AbstractSyntaxTree::Domain(d) => {
             let semantic_parser = DomainSemanticAnalyzer::new(&d);
             match semantic_parser.verify_domain() {
-                Ok(_) => {        }
+                Ok(_) => {}
                 Err(error) => {
                     panic!("{:?}", error)
                 }
             }
         }
-        _ => panic!()
+        _ => panic!(),
     }
 }
 
 #[test]
-pub fn method_subtask_checking_test () {
+pub fn method_subtask_checking_test() {
     let program = String::from(
         "(define (domain bal)
             (:types
@@ -282,22 +278,20 @@ pub fn method_subtask_checking_test () {
                 Ok(_) => {
                     panic!("error are not caught")
                 }
-                Err(error) => {
-                    match error {
-                        SemanticErrorType::InconsistentTaskArgType(t_error) => {
-                            assert_eq!(t_error.expected.unwrap(), "t2");
-                            assert_eq!(t_error.found.unwrap(), "t6");
-                            assert_eq!(t_error.var_name, "?l3");
-                            assert_eq!(t_error.position.line, 27);
-                        }
-                        any => {
-                            panic!("{:?}", any)
-                        }
+                Err(error) => match error {
+                    SemanticErrorType::InconsistentTaskArgType(t_error) => {
+                        assert_eq!(t_error.expected.unwrap(), "t2");
+                        assert_eq!(t_error.found.unwrap(), "t6");
+                        assert_eq!(t_error.var_name, "?l3");
+                        assert_eq!(t_error.position.line, 27);
                     }
-                }
+                    any => {
+                        panic!("{:?}", any)
+                    }
+                },
             }
         }
-        _ => panic!()
+        _ => panic!(),
     }
 }
 #[test]
@@ -311,9 +305,21 @@ pub fn get_supertypes_test() {
         checker.get_types(),
         HashSet::from_iter(vec!["truck", "vehicle", "object", "loc"])
     );
-    
-    assert_eq!(checker.get_supertypes("truck"), HashSet::from_iter(vec!["vehicle", "object"]));
-    assert_eq!(checker.get_supertypes("vehicle"), HashSet::from_iter(vec!["object"]));
-    assert_eq!(checker.get_supertypes("loc"), HashSet::from_iter(vec!["object"]));
-    assert_eq!(checker.get_supertypes("object"), HashSet::from_iter(Vec::<&str>::new()));
+
+    assert_eq!(
+        checker.get_supertypes("truck"),
+        HashSet::from_iter(vec!["vehicle", "object"])
+    );
+    assert_eq!(
+        checker.get_supertypes("vehicle"),
+        HashSet::from_iter(vec!["object"])
+    );
+    assert_eq!(
+        checker.get_supertypes("loc"),
+        HashSet::from_iter(vec!["object"])
+    );
+    assert_eq!(
+        checker.get_supertypes("object"),
+        HashSet::from_iter(Vec::<&str>::new())
+    );
 }
