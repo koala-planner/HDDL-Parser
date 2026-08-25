@@ -94,16 +94,14 @@ impl<'a> ProblemTypeChecker<'a> {
                         },
                     }
                 }
-                return Ok(());
+                Ok(())
             }
-            None => {
-                return Err(SemanticErrorType::UndefinedPredicate(
-                    UndefinedSymbolError {
-                        symbol: predicate.name.to_string(),
-                        position: predicate.name_pos,
-                    },
-                ));
-            }
+            None => Err(SemanticErrorType::UndefinedPredicate(
+                UndefinedSymbolError {
+                    symbol: predicate.name.to_string(),
+                    position: predicate.name_pos,
+                },
+            )),
         }
     }
 
@@ -140,8 +138,8 @@ impl<'a> ProblemTypeChecker<'a> {
                     }
                     None => {
                         let mut undefined = false;
-                        match &*parameters {
-                            Some(params) => match params.iter().find(|x| &x.name == &found.name) {
+                        match parameters {
+                            Some(params) => match params.iter().find(|x| x.name == found.name) {
                                 Some(param) => {
                                     let is_consistent =
                                         self.generic_type_checker.is_var_type_consistent(
@@ -203,7 +201,7 @@ impl<'a> ProblemTypeChecker<'a> {
                     }
                 }
             }
-            return Ok(());
+            Ok(())
         } else if self.symbol_table.tasks.contains(subtask.task.name) {
             let task = self.symbol_table.tasks.get(&subtask.task.name).unwrap();
             if task.parameters.len() != subtask.terms.len() {
@@ -231,8 +229,8 @@ impl<'a> ProblemTypeChecker<'a> {
                     }
                     None => {
                         let mut undefined = false;
-                        match &*parameters {
-                            Some(params) => match params.iter().find(|x| &x.name == &found.name) {
+                        match parameters {
+                            Some(params) => match params.iter().find(|x| x.name == found.name) {
                                 Some(definition) => {
                                     let is_consistent =
                                         self.generic_type_checker.is_var_type_consistent(
@@ -294,12 +292,12 @@ impl<'a> ProblemTypeChecker<'a> {
                     }
                 }
             }
-            return Ok(());
+            Ok(())
         } else {
-            return Err(SemanticErrorType::UndefinedSubtask(UndefinedSymbolError {
+            Err(SemanticErrorType::UndefinedSubtask(UndefinedSymbolError {
                 symbol: subtask.task.name.to_string(),
                 position: subtask.task.name_pos,
-            }));
+            }))
         }
     }
 }

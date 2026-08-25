@@ -1,14 +1,13 @@
-mod lexical;
-mod syntactic;
 mod generic;
-mod semantic;
 mod json;
+mod lexical;
+mod semantic;
+mod syntactic;
 
-pub use lexical::*;
-pub use syntactic::*;
 pub use generic::*;
-pub use semantic::*;
 pub use json::*;
+pub use lexical::*;
+pub use semantic::*;
+pub use syntactic::*;
 
-
-use crate::lexical_analyzer::{Token, TokenPosition};
+use crate::lexical_analyzer::TokenPosition;

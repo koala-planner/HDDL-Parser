@@ -1,5 +1,3 @@
-use std::collections::HashSet;
-
 use crate::*;
 
 // synthesized identifiers must outlive the parsed program, whose strings all
@@ -113,7 +111,7 @@ impl<'a> Transpiler<'a> {
             preconditions.extend(method.precondition.iter());
         }
         preconditions.extend(program.problem.iter().flat_map(|p| p.goal.iter()));
-        
+
         let has_forall = preconditions
             .iter()
             .any(|formula| formula.any_subformula(&mut |f| matches!(f, Formula::ForAll(_, _))));

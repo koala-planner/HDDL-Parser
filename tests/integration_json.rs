@@ -20,8 +20,7 @@ pub fn json_round_trip_ipc() {
         let path = folder.as_ref().unwrap().path();
         let domain_path = fs::read_dir(path.clone())
             .unwrap()
-            .filter(|x| x.as_ref().unwrap().file_name() == "domain.hddl")
-            .next()
+            .find(|x| x.as_ref().unwrap().file_name() == "domain.hddl")
             .as_ref()
             .unwrap()
             .as_ref()

@@ -35,7 +35,7 @@ impl<'a> ProblemSemanticAnalyzer<'a> {
                         symbol: obj.name.to_string(),
                         first_pos: *object_positions.get(obj.name).unwrap(),
                         second_pos: obj.name_pos,
-                    }, 
+                    },
                 ));
             } else {
                 object_types.insert(obj.name, obj.symbol_type);
@@ -45,42 +45,30 @@ impl<'a> ProblemSemanticAnalyzer<'a> {
 
         // check the consistency of init predicates
         for predicate in self.problem.init_state.iter() {
-            let _ = self.type_checker.check_predicate_instantiation(predicate)?;
+            self.type_checker.check_predicate_instantiation(predicate)?;
         }
 
         // check the initial task network
         if let Some(htn) = &self.problem.init_tn {
             if !htn.tn.orderings.is_acyclic() {
-                return Err(
-                    SemanticErrorType::CyclicOrderingDeclaration(
-                        htn.tn.ordering_pos.unwrap_or_default()
-                    )
-                );
+                return Err(SemanticErrorType::CyclicOrderingDeclaration(
+                    htn.tn.ordering_pos.unwrap_or_default(),
+                ));
             }
 
             for subtask in htn.tn.subtasks.iter() {
-                let _ = self
-                    .type_checker
+                self.type_checker
                     .check_subtask_instantiation(subtask, &htn.parameters)?;
             }
         }
 
         // check goal description
-        match &self.problem.goal {
-            Some(goal) => {
-                for predicate in goal.get_propositional_predicates() {
-                    let _ = self.type_checker.check_predicate_instantiation(predicate)?;
-                }
+        if let Some(goal) = &self.problem.goal {
+            for predicate in goal.get_propositional_predicates() {
+                self.type_checker.check_predicate_instantiation(predicate)?;
             }
-            None => {}
         }
 
-        Ok(self
-            .type_checker
-            .symbol_table
-            .warnings
-            .iter()
-            .cloned()
-            .collect())
+        Ok(self.type_checker.symbol_table.warnings.to_vec())
     }
 }
