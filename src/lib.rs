@@ -34,7 +34,11 @@ impl<'a> HDDLProgram<'a> {
         let domain_parser = syntactic_analyzer::Parser::new(lexer);
         let domain_ast = match domain_parser.parse()? {
             AbstractSyntaxTree::Domain(d) => d,
-            _ => panic!("expected domain, found problem"),
+            AbstractSyntaxTree::Problem(_) => {
+                return Err(ParsingError::Transformation(
+                    "expected domain input, found problem".to_string(),
+                ));
+            }
         };
         let problem_ast = match problem {
             Some(p) => {
@@ -42,7 +46,11 @@ impl<'a> HDDLProgram<'a> {
                 let problem_parser = syntactic_analyzer::Parser::new(lexer);
                 match problem_parser.parse()? {
                     AbstractSyntaxTree::Problem(p_ast) => Some(p_ast),
-                    _ => panic!("expected problem, found domain"),
+                    AbstractSyntaxTree::Domain(_) => {
+                        return Err(ParsingError::Transformation(
+                            "expected problem input, found domain".to_string(),
+                        ));
+                    }
                 }
             }
             None => None,

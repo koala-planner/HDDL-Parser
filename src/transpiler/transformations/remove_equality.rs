@@ -1,4 +1,3 @@
-use std::panic;
 use std::vec;
 
 use crate::*;
@@ -7,17 +6,20 @@ const PRED_NAME: &str = "EQUAL";
 
 impl<'a> Transpiler<'a> {
     pub(crate) fn remove_equality_constraints(&mut self) -> Result<(), ParsingError> {
-        remove_equality_constraints(&mut self.program);
+        let Some(problem) = self.program.problem.as_mut() else {
+            return Err(ParsingError::Transformation(
+                "remove-equality-constraints requires a problem input".to_string(),
+            ));
+        };
+
+        remove_equality_constraints(&mut self.program.domain, problem);
         Ok(())
     }
 }
 
-fn remove_equality_constraints<'a>(program: &mut HDDLProgram<'a>) {
-    if program.problem.is_none() {
-        panic!("Compiling inequiality requires a problem instance");
-    }
+fn remove_equality_constraints<'a>(domain: &mut DomainAST<'a>, problem: &mut ProblemAST<'a>) {
     // TODO: Check whether the predict exists before creating one
-    program.domain.add_predicate(Predicate::new(
+    domain.add_predicate(Predicate::new(
         PRED_NAME,
         TokenPosition::default(),
         vec![
@@ -25,7 +27,7 @@ fn remove_equality_constraints<'a>(program: &mut HDDLProgram<'a>) {
             Symbol::new_untyped("?y", TokenPosition::default()),
         ],
     ));
-    for action in program.domain.actions.iter_mut() {
+    for action in domain.actions.iter_mut() {
         if let Some(precondition) = &mut action.preconditions {
             replace_equals(precondition, PRED_NAME);
         }
@@ -33,7 +35,7 @@ fn remove_equality_constraints<'a>(program: &mut HDDLProgram<'a>) {
             replace_equals(effect, PRED_NAME);
         }
     }
-    for method in program.domain.methods.iter_mut() {
+    for method in domain.methods.iter_mut() {
         if let Some(precondition) = &mut method.precondition {
             replace_equals(precondition, PRED_NAME);
         }
@@ -61,7 +63,6 @@ fn remove_equality_constraints<'a>(program: &mut HDDLProgram<'a>) {
             }
         }
     }
-    let problem = program.problem.as_mut().unwrap();
     if let Some(goal) = &mut problem.goal {
         replace_equals(goal, PRED_NAME);
     }
