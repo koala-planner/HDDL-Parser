@@ -1,4 +1,4 @@
-An open-source tool for validating planning models specified in the Hierarchical Domain Definition Language (HDDL)[^1] format based on the official HDDL syntax specification and concrete tests (including those pointing to *potential* issues) as proposed by Sleath and Bercher (2023)[^2]. HDDL Parser aims to help domain modelers catch bugs by providing strong type checking, error localization, and ensuring syntactic correctness. It can also convert models between HDDL and a machine-friendly JSON representation (in both directions), enabling programmatic inspection and modification of planning models.
+A tool for validating planning models specified in the Hierarchical Domain Definition Language (HDDL)[^1] format based on the official HDDL syntax specification and concrete tests (including those pointing to *potential* issues) as proposed by Sleath and Bercher (2023)[^2]. HDDL Parser aims to help domain modelers catch bugs by providing strong type checking, error localization, and ensuring syntactic correctness. It can also convert models between HDDL and a machine-friendly JSON representation (in both directions), enabling programmatic inspection and modification of planning models.
 
 # Detected Errors
 In what follows, we provide the currently supported list of errors (for further details, see the paper by Sleath and Bercher (2023)[^2]). Once detected, actionable error messages in conjunction with the exact error location are returned to help modelers fix problems quickly.
@@ -38,6 +38,21 @@ This tool is validated against all 33 hierarchical domains in IPC 2023 (<a href=
 We welcome contributions and feedback from the planning community. The tool is designed to be extensible for adding new error checks as domain modeling best practices evolve. If you have spotted any bugs, please report them using this repository's "Issues" tab. Alternatively, you can email
 - Mohammad Yousefi (<a href="mailto:mohammad.yousefi@anu.edu.au">mohammad.yousefi@anu.edu.au</a>) for technical enquiries, or
 - Pascal Bercher (<a href="mailto:pascal.bercher@anu.edu.au">pascal.bercher@anu.edu.au</a>) for other purposes.
+
+# Citation
+
+If you use HDDL Parser in your research, please cite:
+
+```bibtex
+@inproceedings{yousefi2025hddlparser,
+  author    = {Yousefi, Mohammad and Bercher, Pascal},
+  title     = {{HDDL Parser}: A Realtime Hierarchical Planning Language Validation Toolkit},
+  booktitle = {Proceedings of the 35th International Conference on Automated Planning and Scheduling (Demonstration Track)},
+  address   = {Melbourne, Australia},
+  year      = {2025},
+  url       = {https://icaps25.icaps-conference.org/program/demos-pdfs/ICAPS25-Demo_paper_2.pdf}
+}
+```
 
 [^1]: Höller, Daniel, Gregor Behnke, Pascal Bercher, Susanne Biundo, Humbert Fiorino, Damien Pellier, and Ron Alford. "HDDL: An Extension to PDDL for Expressing Hierarchical Planning Problems". In Proceedings of the 34th Association for the Advancement of Artificial Intelligence (AAAI) Conference, 9883–9891. AAAI Press, 2020.
 
