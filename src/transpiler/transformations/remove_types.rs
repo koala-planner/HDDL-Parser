@@ -1,5 +1,5 @@
 use core::panic;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::vec;
 
 use crate::*;
@@ -56,7 +56,7 @@ impl<'a> Transpiler<'a> {
         let program = &mut self.program;
         if let Some(constants) = &mut program.domain.constants {
             match &mut program.problem {
-                Some(problem) => {
+                Some(_) => {
                     for constant in constants.iter_mut() {
                         constant.type_pos = None;
                         let name = constant.name;

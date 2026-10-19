@@ -1,5 +1,5 @@
 use core::panic;
-use std::{assert_eq, println, vec};
+use std::{assert_eq, vec};
 
 use super::{Input, Transpiler};
 use crate::{
@@ -20,7 +20,7 @@ fn atom(name: &'static str, vars: Vec<&'static str>) -> Box<Formula<'static>> {
     )))
 }
 
-fn parse_domain(program: &Vec<u8>) -> crate::DomainAST {
+fn parse_domain(program: &Vec<u8>) -> crate::DomainAST<'_> {
     let lexer = LexicalAnalyzer::new(program);
     match Parser::new(lexer).parse() {
         Ok(AbstractSyntaxTree::Domain(ast)) => ast,
@@ -28,7 +28,7 @@ fn parse_domain(program: &Vec<u8>) -> crate::DomainAST {
     }
 }
 
-fn parse_problem(program: &Vec<u8>) -> crate::ProblemAST {
+fn parse_problem(program: &Vec<u8>) -> crate::ProblemAST<'_> {
     let lexer = LexicalAnalyzer::new(program);
     match Parser::new(lexer).parse() {
         Ok(AbstractSyntaxTree::Problem(ast)) => ast,
@@ -704,7 +704,9 @@ pub fn untyping_rejects_invalid_program_test() {
     )";
     let domain_bytes = domain.as_bytes().to_vec();
     let transpiler = Transpiler::from_hddl(&domain_bytes, None).unwrap();
-    assert!(transpiler.transform(crate::Transformation::RemoveTypes).is_err());
+    assert!(transpiler
+        .transform(crate::Transformation::RemoveTypes)
+        .is_err());
 }
 
 #[test]
@@ -891,12 +893,22 @@ pub fn conjunctive_preconditions_splits_action_test() {
         .unwrap();
     assert_eq!(wrapper.parameters.len(), 1);
     // one primitive copy per cube, each carrying the cube and cloned effects
-    let copy_0 = result.domain.actions.iter().find(|a| a.name == "act_a0").unwrap();
+    let copy_0 = result
+        .domain
+        .actions
+        .iter()
+        .find(|a| a.name == "act_a0")
+        .unwrap();
     match &copy_0.preconditions {
         Some(Formula::Atom(predicate)) => assert_eq!(predicate.name, "p"),
         other => panic!("unexpected precondition {other:?}"),
     }
-    let copy_1 = result.domain.actions.iter().find(|a| a.name == "act_a1").unwrap();
+    let copy_1 = result
+        .domain
+        .actions
+        .iter()
+        .find(|a| a.name == "act_a1")
+        .unwrap();
     match &copy_1.preconditions {
         Some(Formula::And(conjuncts)) => assert_eq!(conjuncts.len(), 2),
         other => panic!("unexpected precondition {other:?}"),
@@ -921,7 +933,6 @@ pub fn conjunctive_preconditions_splits_action_test() {
         assert_eq!(method.tn.subtasks[0].task.name, copy_name);
     }
 }
-
 
 #[test]
 pub fn quantifier_elimination_test() {
@@ -959,7 +970,11 @@ pub fn quantifier_elimination_test() {
         Formula::Atom(predicate) => {
             assert_eq!(predicate.name, name);
             assert_eq!(
-                predicate.variables.iter().map(|v| v.name).collect::<Vec<_>>(),
+                predicate
+                    .variables
+                    .iter()
+                    .map(|v| v.name)
+                    .collect::<Vec<_>>(),
                 args
             );
         }
@@ -1017,9 +1032,7 @@ pub fn quantifier_elimination_test() {
     }
     // no quantifier survives anywhere
     let quantifier_free = |formula: &Formula| {
-        !formula.any_subformula(&mut |f| {
-            matches!(f, Formula::ForAll(_, _) | Formula::Exists(_, _))
-        })
+        !formula.any_subformula(&mut |f| matches!(f, Formula::ForAll(_, _) | Formula::Exists(_, _)))
     };
     for action in result.domain.actions.iter() {
         assert!(action.preconditions.iter().all(&quantifier_free));

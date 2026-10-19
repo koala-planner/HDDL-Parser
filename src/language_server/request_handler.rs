@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::fs;
 use std::sync::Arc;
 
 use tokio::sync::RwLock;
@@ -67,7 +66,8 @@ impl LanguageServer for RequestHandler {
         self.sync(
             params.text_document.uri,
             params.text_document.text.into_bytes(),
-        ).await;
+        )
+        .await;
     }
 
     async fn did_save(&self, params: DidSaveTextDocumentParams) {

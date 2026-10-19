@@ -1,6 +1,6 @@
 use super::*;
 
-impl <'a> Parser<'a> {
+impl<'a> Parser<'a> {
     pub fn parse_domain(&self, domain_name: &'a str) -> Result<DomainAST<'a>, ParsingError> {
         let mut syntax_tree = DomainAST::new(domain_name.to_string());
         loop {
@@ -25,22 +25,15 @@ impl <'a> Parser<'a> {
                         Token::Keyword(KeywordName::Task) => {
                             let task = self.parse_task()?;
                             match self.tokenizer.get_token()? {
-                                Token::Punctuator(
-                                    PunctuationType::RParentheses,
-                                ) => {
+                                Token::Punctuator(PunctuationType::RParentheses) => {
                                     syntax_tree.add_compound_task(task);
                                 }
                                 token => {
                                     let error = SyntacticError {
-                                        expected: format!(
-                                            "')' after definition of {}",
-                                            task.name
-                                        )
-                                        .to_string(),
+                                        expected: format!("')' after definition of {}", task.name)
+                                            .to_string(),
                                         found: token.to_string(),
-                                        position: self
-                                            .tokenizer
-                                            .get_last_token_position(),
+                                        position: self.tokenizer.get_last_token_position(),
                                     };
                                     return Err(ParsingError::Syntactic(error));
                                 }

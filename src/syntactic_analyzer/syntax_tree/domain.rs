@@ -1,7 +1,7 @@
 use std::fmt;
 
-use crate::transpiler::{format_block, format_list};
 use super::*;
+use crate::transpiler::{format_block, format_list};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct DomainAST<'a> {
@@ -16,7 +16,7 @@ pub struct DomainAST<'a> {
     pub compound_tasks: Vec<Task<'a>>,
     pub methods: Vec<Method<'a>>,
     pub actions: Vec<Action<'a>>,
-    pub functions: Vec<Function<'a>>
+    pub functions: Vec<Function<'a>>,
 }
 
 impl<'a> DomainAST<'a> {
@@ -30,7 +30,7 @@ impl<'a> DomainAST<'a> {
             compound_tasks: vec![],
             methods: vec![],
             actions: vec![],
-            functions: vec![]
+            functions: vec![],
         }
     }
 
@@ -58,46 +58,62 @@ impl<'a> DomainAST<'a> {
         self.functions.push(function);
     }
 
-    pub fn add_var_type(&mut self, var: Symbol<'a>){
+    pub fn add_var_type(&mut self, var: Symbol<'a>) {
         match self.types.as_mut() {
             Some(t) => {
                 t.push(var);
             }
-            None => {
-                self.types = Some(vec![var])
-            }
+            None => self.types = Some(vec![var]),
         }
     }
 
-    pub fn add_constant(&mut self, constant: Symbol<'a>){
+    pub fn add_constant(&mut self, constant: Symbol<'a>) {
         match self.constants.as_mut() {
             Some(c) => {
                 c.push(constant);
             }
-            None => {
-                self.constants = Some(vec![constant])
-            }
+            None => self.constants = Some(vec![constant]),
         }
     }
 }
 
-impl <'a> fmt::Display for DomainAST<'a> {
+impl<'a> fmt::Display for DomainAST<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "(define (domain {})\n", self.name)?;
         if !self.requirements.is_empty() {
-            write!(f, "\n\t(:requirements {})\n", format_list(&self.requirements))?;
+            write!(
+                f,
+                "\n\t(:requirements {})\n",
+                format_list(&self.requirements)
+            )?;
         }
         if let Some(types) = &self.types {
-            write!(f, "\n\t{}\n", format_block(":types", types).replace('\n', "\n\t"))?;
+            write!(
+                f,
+                "\n\t{}\n",
+                format_block(":types", types).replace('\n', "\n\t")
+            )?;
         }
         if let Some(constants) = &self.constants {
-            write!(f, "\n\t{}\n", format_block(":constants", constants).replace('\n', "\n\t"))?;
+            write!(
+                f,
+                "\n\t{}\n",
+                format_block(":constants", constants).replace('\n', "\n\t")
+            )?;
         }
         if !self.predicates.is_empty() {
-            write!(f, "\n\t{}\n", format_block(":predicates", &self.predicates).replace('\n', "\n\t"))?;
+            write!(
+                f,
+                "\n\t{}\n",
+                format_block(":predicates", &self.predicates).replace('\n', "\n\t")
+            )?;
         }
         if !self.functions.is_empty() {
-            write!(f, "\n\t{}\n", format_block(":functions", &self.functions).replace('\n', "\n\t"))?;
+            write!(
+                f,
+                "\n\t{}\n",
+                format_block(":functions", &self.functions).replace('\n', "\n\t")
+            )?;
         }
         // members are multi-line: shift every line one level to keep their
         // parentheses and keyword colons vertically aligned

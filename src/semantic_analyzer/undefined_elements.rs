@@ -18,7 +18,7 @@ pub fn check_predicate_declarations<'a>(
                             symbol: predicate.name.to_string(),
                             expected_arity: declared_predicate.variables.len() as u32,
                             found_arity: predicate.variables.len() as u32,
-                            position: predicate.name_pos
+                            position: predicate.name_pos,
                         }));
                     }
                 }
