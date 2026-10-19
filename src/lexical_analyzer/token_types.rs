@@ -99,6 +99,7 @@ pub enum RequirementType {
     ProbabilisticEffects,
     ConditionalEffects,
     DomainAxioms,
+    ADL,
 }
 
 impl fmt::Display for RequirementType {
@@ -116,6 +117,7 @@ impl fmt::Display for RequirementType {
             RequirementType::ProbabilisticEffects => ":probabilistic-effects",
             RequirementType::ConditionalEffects => ":conditional-effects",
             RequirementType::DomainAxioms => ":domain-axioms",
+            RequirementType::ADL => ":adl"
         };
         write!(f, "{}", requirement)
     }
