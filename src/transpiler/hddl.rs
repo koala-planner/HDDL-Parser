@@ -4,7 +4,8 @@ use crate::syntactic_analyzer::Symbol;
 
 // space-joins any list of displayable items
 pub(crate) fn format_list<T: fmt::Display>(items: &[T]) -> String {
-    items.iter()
+    items
+        .iter()
         .map(|item| item.to_string())
         .collect::<Vec<_>>()
         .join(" ")

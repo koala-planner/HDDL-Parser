@@ -1,5 +1,5 @@
 use clap::Parser;
-use hddl_analyzer::{Input, ParsingError, Transformation, Transpiler};
+use hddl_analyzer::{Input, ParsingError, Transpiler};
 use std::{
     env, fs,
     path::{Path, PathBuf},
@@ -57,7 +57,7 @@ impl InputData {
         }
     }
 
-    fn transpiler(&self) -> Result<Transpiler, ParsingError> {
+    fn transpiler(&self) -> Result<Transpiler<'_>, ParsingError> {
         Transpiler::from_input(match self {
             InputData::Json(json) => Input::Json(json),
             InputData::Hddl { domain, problem } => Input::Hddl {
@@ -89,7 +89,7 @@ fn convert(args: ConvertArgs) {
     };
     let mut transpiler = transpiler;
     for transformation in args.transform.iter() {
-        transpiler = match transpiler.transform(transformation.clone()) {
+        transpiler = match transpiler.transform(*transformation) {
             Ok(transpiler) => transpiler,
             Err(error) => return eprintln!("{RED}[Error]{RESET} {error}"),
         };
@@ -159,10 +159,7 @@ fn format_files(input: InputArgs) {
     };
     match &data {
         InputData::Json(_) => {
-            return eprintln!(
-                "{RED}[Error]{RESET} {}",
-                "this is only supported for HDDL files."
-            )
+            eprintln!("{RED}[Error]{RESET} this is only supported for HDDL files.")
         }
         InputData::Hddl { .. } => {
             let (domain, problem) = transpiler.to_hddl();

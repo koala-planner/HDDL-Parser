@@ -43,9 +43,9 @@ impl<'a> TypeChecker<'a> {
             type_graph.add_edge(root, "object", ());
         }
 
-        return TypeChecker {
+        TypeChecker {
             type_hierarchy: type_graph,
-        };
+        }
     }
 
     pub fn get_types(&self) -> HashSet<&'a str> {
@@ -84,9 +84,7 @@ impl<'a> TypeChecker<'a> {
     pub fn verify_type_hierarchy(&self) -> Result<(), SemanticErrorType> {
         match toposort(&self.type_hierarchy, None) {
             Ok(_) => Ok(()),
-            Err(_) => {
-                return Err(SemanticErrorType::CyclicTypeDeclaration);
-            }
+            Err(_) => Err(SemanticErrorType::CyclicTypeDeclaration),
         }
     }
 
@@ -95,13 +93,13 @@ impl<'a> TypeChecker<'a> {
         parameters: &Vec<Symbol<'a>>,
     ) -> Option<SemanticErrorType> {
         for parameter in parameters.iter() {
-            if let Some(t) = parameter.symbol_type {
-                if !self.type_hierarchy.contains_node(t) {
-                    return Some(SemanticErrorType::UndefinedType(UndefinedSymbolError {
-                        symbol: parameter.symbol_type.unwrap().to_string(),
-                        position: parameter.type_pos.unwrap_or_default(),
-                    }));
-                }
+            if let Some(t) = parameter.symbol_type
+                && !self.type_hierarchy.contains_node(t)
+            {
+                return Some(SemanticErrorType::UndefinedType(UndefinedSymbolError {
+                    symbol: t.to_string(),
+                    position: parameter.type_pos.unwrap_or_default(),
+                }));
             }
         }
         None
@@ -119,19 +117,11 @@ impl<'a> TypeChecker<'a> {
                     return true;
                 }
                 // search whether there is a path from current type to a super type
-                if !has_path_connecting(&self.type_hierarchy, found_typing, defined_typing, None) {
-                    return false;
-                } else {
-                    return true;
-                }
+                has_path_connecting(&self.type_hierarchy, found_typing, defined_typing, None)
             }
-            (None, None) => {
-                return true;
-            }
-            (None, Some(_)) => return false,
-            (Some(_), None) => {
-                return true;
-            }
+            (None, None) => true,
+            (None, Some(_)) => false,
+            (Some(_), None) => true,
         }
     }
 }

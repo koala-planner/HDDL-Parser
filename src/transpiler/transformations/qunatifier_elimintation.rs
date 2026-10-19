@@ -1,7 +1,3 @@
-use std::{todo, vec};
-
-use super::*;
-use crate::AbstractSyntaxTree::*;
 use crate::*;
 
 impl<'a> Transpiler<'a> {
@@ -13,23 +9,23 @@ impl<'a> Transpiler<'a> {
         };
         let type_checker = TypeChecker::new(&self.program.domain.types);
         for action in self.program.domain.actions.iter_mut() {
-            if let Some(precondition) = &mut action.preconditions {
-                if precondition.is_quantified() {
-                    Self::expand_quantifiers(precondition, problem, &type_checker);
-                }
+            if let Some(precondition) = &mut action.preconditions
+                && precondition.is_quantified()
+            {
+                Self::expand_quantifiers(precondition, problem, &type_checker);
             }
-            if let Some(effect) = &mut action.effects {
-                if effect.is_quantified() {
-                    Self::expand_quantifiers(effect, problem, &type_checker);
-                }
+            if let Some(effect) = &mut action.effects
+                && effect.is_quantified()
+            {
+                Self::expand_quantifiers(effect, problem, &type_checker);
             }
         }
 
         for method in self.program.domain.methods.iter_mut() {
-            if let Some(precondition) = &mut method.precondition {
-                if precondition.is_quantified() {
-                    Self::expand_quantifiers(precondition, problem, &type_checker);
-                }
+            if let Some(precondition) = &mut method.precondition
+                && precondition.is_quantified()
+            {
+                Self::expand_quantifiers(precondition, problem, &type_checker);
             }
         }
         Ok(())
@@ -129,18 +125,5 @@ impl<'a> Transpiler<'a> {
             })
             .cloned()
             .collect()
-    }
-
-    fn get_objects(
-        &self,
-        of_type: Option<&'a str>,
-        type_checker: &TypeChecker<'a>,
-    ) -> Result<Vec<Symbol<'a>>, ParsingError> {
-        match &self.program.problem {
-            Some(problem) => Ok(Self::objects_of_type(problem, of_type, type_checker)),
-            None => Err(ParsingError::Transformation(
-                "problem file is not provided".to_string(),
-            )),
-        }
     }
 }
