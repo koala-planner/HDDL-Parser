@@ -47,7 +47,7 @@ If you use HDDL Parser in your research, please cite:
 @inproceedings{yousefi2025hddlparser,
   author    = {Yousefi, Mohammad and Bercher, Pascal},
   title     = {{HDDL Parser}: A Realtime Hierarchical Planning Language Validation Toolkit},
-  booktitle = {Proceedings of the 35th International Conference on Automated Planning and Scheduling (Demonstration Track)},
+  booktitle = {ICAPS 2025 Demonstrations},
   address   = {Melbourne, Australia},
   year      = {2025},
   url       = {https://icaps25.icaps-conference.org/program/demos-pdfs/ICAPS25-Demo_paper_2.pdf}
