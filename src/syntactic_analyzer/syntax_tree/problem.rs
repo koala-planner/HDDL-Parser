@@ -1,8 +1,8 @@
 use std::fmt;
 
 use super::*;
-use crate::TokenPosition;
 use crate::transpiler::{format_block, format_list};
+use crate::TokenPosition;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ProblemAST<'a> {
@@ -20,7 +20,7 @@ pub struct ProblemAST<'a> {
     pub objects: Vec<Symbol<'a>>,
 }
 
-impl <'a> ProblemAST<'a> {
+impl<'a> ProblemAST<'a> {
     pub fn new(name: &'a str, domain_name: &'a str) -> ProblemAST<'a> {
         ProblemAST {
             name,
@@ -29,14 +29,20 @@ impl <'a> ProblemAST<'a> {
             init_tn: None,
             init_state: vec![],
             goal: None,
-            objects: vec![]
+            objects: vec![],
         }
     }
     pub fn add_object(&mut self, name: &'a str, object_pos: TokenPosition) {
         let object = Symbol::new(name, object_pos, None, None);
         self.objects.push(object);
     }
-    pub fn add_typed_object(&mut self, name: &'a str, name_pos: TokenPosition, object_type: &'a str, type_pos: TokenPosition) {
+    pub fn add_typed_object(
+        &mut self,
+        name: &'a str,
+        name_pos: TokenPosition,
+        object_type: &'a str,
+        type_pos: TokenPosition,
+    ) {
         let object = Symbol::new(name, name_pos, Some(object_type), Some(type_pos));
         self.objects.push(object);
     }
@@ -57,24 +63,44 @@ impl <'a> ProblemAST<'a> {
     }
 }
 
-impl <'a> fmt::Display for ProblemAST<'a> {
+impl<'a> fmt::Display for ProblemAST<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "(define (problem {}) (:domain {})\n", self.name, self.domain_name)?;
+        write!(
+            f,
+            "(define (problem {}) (:domain {})\n",
+            self.name, self.domain_name
+        )?;
         if !self.requirements.is_empty() {
-            write!(f, "\n\t(:requirements {})\n", format_list(&self.requirements))?;
+            write!(
+                f,
+                "\n\t(:requirements {})\n",
+                format_list(&self.requirements)
+            )?;
         }
         if !self.objects.is_empty() {
-            write!(f, "\n\t{}\n", format_block(":objects", &self.objects).replace('\n', "\n\t"))?;
+            write!(
+                f,
+                "\n\t{}\n",
+                format_block(":objects", &self.objects).replace('\n', "\n\t")
+            )?;
         }
         if let Some(init_tn) = &self.init_tn {
             write!(f, "\n\t{}\n", init_tn.to_string().replace('\n', "\n\t"))?;
         }
         if !self.init_state.is_empty() {
-            write!(f, "\n\t{}\n", format_block(":init", &self.init_state).replace('\n', "\n\t"))?;
+            write!(
+                f,
+                "\n\t{}\n",
+                format_block(":init", &self.init_state).replace('\n', "\n\t")
+            )?;
         }
         // the parser only accepts :goal as the last block of a problem
         if let Some(goal) = &self.goal {
-            write!(f, "\n\t(:goal {})\n", goal.to_string().replace('\n', "\n\t"))?;
+            write!(
+                f,
+                "\n\t(:goal {})\n",
+                goal.to_string().replace('\n', "\n\t")
+            )?;
         }
         write!(f, "\n)")
     }

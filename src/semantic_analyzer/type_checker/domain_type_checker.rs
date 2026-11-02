@@ -1,7 +1,5 @@
 use std::collections::{HashMap, HashSet};
 
-use crate::lexical_analyzer::TokenPosition;
-
 use super::*;
 
 #[derive(Clone)]
@@ -75,7 +73,7 @@ impl<'a> DomainTypeChecker<'a> {
                             },
                         }
                     }
-                    let mut expected_list: Vec<&Option<&str>> = predicate_definition
+                    let expected_list: Vec<&Option<&str>> = predicate_definition
                         .variables
                         .iter()
                         .map(|x| &x.symbol_type)
@@ -135,21 +133,17 @@ impl<'a> DomainTypeChecker<'a> {
                 Some(par_definition) => {
                     found_types.push((term, par_definition));
                 }
-                None => {
-                    match declared_constants.get(term) {
-                        Some(constant) => {
-                            found_types.push((term, constant))
-                        }
-                        None => {
-                            return Err(SemanticErrorType::UndefinedParameter(
-                                UndefinedSymbolError {
-                                    symbol: term.name.to_string(),
-                                    position: term.name_pos,
-                                },
-                            ));
-                        }
+                None => match declared_constants.get(term) {
+                    Some(constant) => found_types.push((term, constant)),
+                    None => {
+                        return Err(SemanticErrorType::UndefinedParameter(
+                            UndefinedSymbolError {
+                                symbol: term.name.to_string(),
+                                position: term.name_pos,
+                            },
+                        ));
                     }
-                }
+                },
             }
         }
         match declared_actions.iter().find(|x| x.name == task.name) {

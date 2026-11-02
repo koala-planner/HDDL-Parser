@@ -43,16 +43,14 @@ pub fn cyclic_method_ordering_test() {
                 Ok(_) => {
                     panic!("errors are not caught")
                 }
-                Err(error) => {
-                    match error {
-                        SemanticErrorType::CyclicOrderingDeclaration(pos) => {
-                            assert_eq!(pos.line, 21);
-                        }
-                        _ => {
-                            panic!("caught wrong error")
-                        }
+                Err(error) => match error {
+                    SemanticErrorType::CyclicOrderingDeclaration(pos) => {
+                        assert_eq!(pos.line, 21);
                     }
-                }
+                    _ => {
+                        panic!("caught wrong error")
+                    }
+                },
             }
         }
         _ => panic!(),

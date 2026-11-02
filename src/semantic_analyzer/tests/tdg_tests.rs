@@ -5,7 +5,7 @@ use tdg::TDG;
 use super::*;
 
 #[test]
-pub fn tdg_correctness_test () {
+pub fn tdg_correctness_test() {
     let program = String::from(
         "(define (domain bal)
             (:predicates 
@@ -41,7 +41,8 @@ pub fn tdg_correctness_test () {
         ) ",
     )
     .into_bytes();
-    let problem = String::from("
+    let problem = String::from(
+        "
         (define (problem p-1-2-2)
             (:domain barman_htn)
             (:htn
@@ -50,7 +51,9 @@ pub fn tdg_correctness_test () {
                     (abs_1)
                 )
             )
-    ").into_bytes();
+    ",
+    )
+    .into_bytes();
     let lexer = LexicalAnalyzer::new(&program);
     let parser = Parser::new(lexer);
     let ast = parser.parse().unwrap();
@@ -60,7 +63,7 @@ pub fn tdg_correctness_test () {
             let p_parser = Parser::new(p_lexer);
             let p_ast = p_parser.parse().unwrap();
             match p_ast {
-                AbstractSyntaxTree::Problem(p_ast) => {
+                AbstractSyntaxTree::Problem(_) => {
                     let tdg = TDG::new(&d);
                     let reachable_abs_1 = tdg.reachable("abs_1");
                     assert_eq!(reachable_abs_1.compounds.len(), 3);
@@ -76,16 +79,15 @@ pub fn tdg_correctness_test () {
                     assert_eq!(reachable_p_2.primitives.contains("p_2"), true);
                     assert_eq!(reachable_p_2.nullable, false);
                 }
-                _ => panic!()
+                _ => panic!(),
             }
         }
-        AbstractSyntaxTree::Problem(_) => panic!()
+        AbstractSyntaxTree::Problem(_) => panic!(),
     }
 }
 
-
 #[test]
-pub fn tdg_non_recursive_test () {
+pub fn tdg_non_recursive_test() {
     let program = String::from(
         "(define (domain bal)
             (:predicates 
@@ -115,7 +117,8 @@ pub fn tdg_non_recursive_test () {
         ) ",
     )
     .into_bytes();
-    let problem = String::from("
+    let problem = String::from(
+        "
         (define (problem p-1-2-2)
             (:domain barman_htn)
             (:htn
@@ -124,7 +127,9 @@ pub fn tdg_non_recursive_test () {
                     (abs_1)
                 )
             )
-    ").into_bytes();
+    ",
+    )
+    .into_bytes();
     let lexer = LexicalAnalyzer::new(&program);
     let parser = Parser::new(lexer);
     let ast = parser.parse().unwrap();
@@ -134,7 +139,7 @@ pub fn tdg_non_recursive_test () {
             let p_parser = Parser::new(p_lexer);
             let p_ast = p_parser.parse().unwrap();
             match p_ast {
-                AbstractSyntaxTree::Problem(p_ast) => {
+                AbstractSyntaxTree::Problem(_) => {
                     let tdg = TDG::new(&d);
                     let nullables = tdg.compute_nullables();
                     let recursion_info = tdg.classify_cycles(&nullables);
@@ -145,15 +150,15 @@ pub fn tdg_non_recursive_test () {
                     assert!(recursion_info.grow_and_shrink_tasks.len() == 0);
                     assert!(recursion_info.acyclic_tasks.len() > 0);
                 }
-                _ => panic!()
+                _ => panic!(),
             }
         }
-        AbstractSyntaxTree::Problem(_) => panic!()
+        AbstractSyntaxTree::Problem(_) => panic!(),
     }
 }
 
 #[test]
-pub fn tdg_recursive_test () {
+pub fn tdg_recursive_test() {
     let program = String::from(
         "(define (domain bal)
             (:predicates 
@@ -185,7 +190,8 @@ pub fn tdg_recursive_test () {
         ) ",
     )
     .into_bytes();
-    let problem = String::from("
+    let problem = String::from(
+        "
         (define (problem p-1-2-2)
             (:domain barman_htn)
             (:htn
@@ -194,7 +200,9 @@ pub fn tdg_recursive_test () {
                     (abs_1)
                 )
             )
-    ").into_bytes();
+    ",
+    )
+    .into_bytes();
     let lexer = LexicalAnalyzer::new(&program);
     let parser = Parser::new(lexer);
     let ast = parser.parse().unwrap();
@@ -204,21 +212,21 @@ pub fn tdg_recursive_test () {
             let p_parser = Parser::new(p_lexer);
             let p_ast = p_parser.parse().unwrap();
             match p_ast {
-                AbstractSyntaxTree::Problem(p_ast) => {
+                AbstractSyntaxTree::Problem(_) => {
                     let tdg = TDG::new(&d);
                     let nullables = tdg.compute_nullables();
                     let recursion_info = tdg.classify_cycles(&nullables);
                     assert!(recursion_info.recursive_tasks.len() > 0);
                 }
-                _ => panic!()
+                _ => panic!(),
             }
         }
-        AbstractSyntaxTree::Problem(_) => panic!()
+        AbstractSyntaxTree::Problem(_) => panic!(),
     }
 }
 
 #[test]
-pub fn tdg_grow_and_shrink_cycle_test () {
+pub fn tdg_grow_and_shrink_cycle_test() {
     let program = String::from(
         "(define (domain bal)
             (:predicates 
@@ -255,7 +263,8 @@ pub fn tdg_grow_and_shrink_cycle_test () {
         ) ",
     )
     .into_bytes();
-    let problem = String::from("
+    let problem = String::from(
+        "
         (define (problem p-1-2-2)
             (:domain barman_htn)
             (:htn
@@ -264,7 +273,9 @@ pub fn tdg_grow_and_shrink_cycle_test () {
                     (abs_1)
                 )
             )
-    ").into_bytes();
+    ",
+    )
+    .into_bytes();
     let lexer = LexicalAnalyzer::new(&program);
     let parser = Parser::new(lexer);
     let ast = parser.parse().unwrap();
@@ -274,22 +285,21 @@ pub fn tdg_grow_and_shrink_cycle_test () {
             let p_parser = Parser::new(p_lexer);
             let p_ast = p_parser.parse().unwrap();
             match p_ast {
-                AbstractSyntaxTree::Problem(p_ast) => {
+                AbstractSyntaxTree::Problem(_) => {
                     let tdg = TDG::new(&d);
                     let nullables = tdg.compute_nullables();
-                    let recursion_info =  tdg.classify_cycles(&nullables);
+                    let recursion_info = tdg.classify_cycles(&nullables);
                     assert!(recursion_info.grow_and_shrink_tasks.len() > 0);
                 }
-                _ => panic!()
+                _ => panic!(),
             }
         }
-        AbstractSyntaxTree::Problem(_) => panic!()
+        AbstractSyntaxTree::Problem(_) => panic!(),
     }
 }
 
-
 #[test]
-pub fn tdg_grow_and_shrink_cycle_partial_order_1_test () {
+pub fn tdg_grow_and_shrink_cycle_partial_order_1_test() {
     let program = String::from(
         "(define (domain bal)
             (:predicates 
@@ -331,7 +341,8 @@ pub fn tdg_grow_and_shrink_cycle_partial_order_1_test () {
         ) ",
     )
     .into_bytes();
-    let problem = String::from("
+    let problem = String::from(
+        "
         (define (problem p-1-2-2)
             (:domain barman_htn)
             (:htn
@@ -340,7 +351,9 @@ pub fn tdg_grow_and_shrink_cycle_partial_order_1_test () {
                     (abs_1)
                 )
             )
-    ").into_bytes();
+    ",
+    )
+    .into_bytes();
     let lexer = LexicalAnalyzer::new(&program);
     let parser = Parser::new(lexer);
     let ast = parser.parse().unwrap();
@@ -350,22 +363,21 @@ pub fn tdg_grow_and_shrink_cycle_partial_order_1_test () {
             let p_parser = Parser::new(p_lexer);
             let p_ast = p_parser.parse().unwrap();
             match p_ast {
-                AbstractSyntaxTree::Problem(p_ast) => {
+                AbstractSyntaxTree::Problem(_) => {
                     let tdg = TDG::new(&d);
                     let nullables = tdg.compute_nullables();
                     let recursion_info = tdg.classify_cycles(&nullables);
                     assert!(recursion_info.grow_and_shrink_tasks.len() > 0);
                 }
-                _ => panic!()
+                _ => panic!(),
             }
         }
-        AbstractSyntaxTree::Problem(_) => panic!()
+        AbstractSyntaxTree::Problem(_) => panic!(),
     }
 }
 
-
 #[test]
-pub fn tdg_growing_cycle_test () {
+pub fn tdg_growing_cycle_test() {
     let program = String::from(
         "(define (domain bal)
             (:predicates 
@@ -405,7 +417,8 @@ pub fn tdg_growing_cycle_test () {
         ) ",
     )
     .into_bytes();
-    let problem = String::from("
+    let problem = String::from(
+        "
         (define (problem p-1-2-2)
             (:domain barman_htn)
             (:htn
@@ -414,7 +427,9 @@ pub fn tdg_growing_cycle_test () {
                     (abs_1)
                 )
             )
-    ").into_bytes();
+    ",
+    )
+    .into_bytes();
     let lexer = LexicalAnalyzer::new(&program);
     let parser = Parser::new(lexer);
     let ast = parser.parse().unwrap();
@@ -424,21 +439,21 @@ pub fn tdg_growing_cycle_test () {
             let p_parser = Parser::new(p_lexer);
             let p_ast = p_parser.parse().unwrap();
             match p_ast {
-                AbstractSyntaxTree::Problem(p_ast) => {
+                AbstractSyntaxTree::Problem(_) => {
                     let tdg = TDG::new(&d);
                     let nullables = tdg.compute_nullables();
                     let recursion_info = tdg.classify_cycles(&nullables);
                     assert!(recursion_info.growing_empty_recursive_tasks.len() > 0);
                 }
-                _ => panic!()
+                _ => panic!(),
             }
         }
-        AbstractSyntaxTree::Problem(_) => panic!()
+        AbstractSyntaxTree::Problem(_) => panic!(),
     }
 }
 
 #[test]
-pub fn satelite_domain_cycle_test () {
+pub fn satelite_domain_cycle_test() {
     let program = String::from(
         "(define (domain bal)
             (:predicates 
@@ -490,7 +505,8 @@ pub fn satelite_domain_cycle_test () {
         ) ",
     )
     .into_bytes();
-    let problem = String::from("
+    let problem = String::from(
+        "
         (define (problem p-1-2-2)
             (:domain barman_htn)
             (:htn
@@ -499,7 +515,9 @@ pub fn satelite_domain_cycle_test () {
                     (abs_1)
                 )
             )
-    ").into_bytes();
+    ",
+    )
+    .into_bytes();
     let lexer = LexicalAnalyzer::new(&program);
     let parser = Parser::new(lexer);
     let ast = parser.parse().unwrap();
@@ -509,21 +527,21 @@ pub fn satelite_domain_cycle_test () {
             let p_parser = Parser::new(p_lexer);
             let p_ast = p_parser.parse().unwrap();
             match p_ast {
-                AbstractSyntaxTree::Problem(p_ast) => {
+                AbstractSyntaxTree::Problem(_) => {
                     let tdg = TDG::new(&d);
                     let nullables = tdg.compute_nullables();
                     let recursion_info = tdg.classify_cycles(&nullables);
                     assert!(recursion_info.recursive_tasks.len() > 0);
                 }
-                _ => panic!()
+                _ => panic!(),
             }
         }
-        AbstractSyntaxTree::Problem(_) => panic!()
+        AbstractSyntaxTree::Problem(_) => panic!(),
     }
 }
 
 #[test]
-pub fn tdg_nullables_test () {
+pub fn tdg_nullables_test() {
     let program = String::from(
         "(define (domain bal)
             (:predicates 
@@ -577,7 +595,8 @@ pub fn tdg_nullables_test () {
         ) ",
     )
     .into_bytes();
-    let problem = String::from("
+    let problem = String::from(
+        "
         (define (problem p-1-2-2)
             (:domain barman_htn)
             (:htn
@@ -586,7 +605,9 @@ pub fn tdg_nullables_test () {
                     (abs_1)
                 )
             )
-    ").into_bytes();
+    ",
+    )
+    .into_bytes();
     let lexer = LexicalAnalyzer::new(&program);
     let parser = Parser::new(lexer);
     let ast = parser.parse().unwrap();
@@ -596,13 +617,16 @@ pub fn tdg_nullables_test () {
             let p_parser = Parser::new(p_lexer);
             let p_ast = p_parser.parse().unwrap();
             match p_ast {
-                AbstractSyntaxTree::Problem(p_ast) => {
+                AbstractSyntaxTree::Problem(_) => {
                     let tdg = TDG::new(&d);
-                    assert_eq!(tdg.compute_nullables(), HashSet::from(["abs_1", "abs_2", "abs_3"]))
+                    assert_eq!(
+                        tdg.compute_nullables(),
+                        HashSet::from(["abs_1", "abs_2", "abs_3"])
+                    )
                 }
-                _ => panic!()
+                _ => panic!(),
             }
         }
-        AbstractSyntaxTree::Problem(_) => panic!()
+        AbstractSyntaxTree::Problem(_) => panic!(),
     }
 }

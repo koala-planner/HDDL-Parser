@@ -1,7 +1,7 @@
 mod errors;
-mod warnings;
 mod metadata;
+mod warnings;
 
 pub use errors::*;
-pub use warnings::*;
 pub use metadata::*;
+pub use warnings::*;

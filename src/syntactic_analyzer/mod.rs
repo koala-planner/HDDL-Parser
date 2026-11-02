@@ -1,13 +1,14 @@
-mod parser;
 mod definition_types;
-mod tests;
 mod domain_parser;
+mod parser;
 mod problem_parser;
 mod syntax_tree;
+#[cfg(test)]
+mod tests;
 
+use crate::lexical_analyzer::*;
+use crate::output::*;
+pub use definition_types::FileVariant;
+use definition_types::*;
 pub use parser::Parser;
 pub use syntax_tree::*;
-use definition_types::*;
-use crate::output::*;
-use crate::lexical_analyzer::*;
-pub use definition_types::FileVariant;

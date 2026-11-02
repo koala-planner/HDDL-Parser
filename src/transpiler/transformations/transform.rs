@@ -10,5 +10,5 @@ pub enum Transformation {
     // types become unary predicates
     RemoveTypes,
     // remove quantifiers
-    QuantifierElimintation
+    QuantifierElimintation,
 }

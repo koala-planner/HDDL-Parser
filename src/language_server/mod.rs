@@ -1,5 +1,5 @@
-pub mod request_handler;
 mod diagnostic_utils;
+pub mod request_handler;
 
 pub use request_handler::RequestHandler;
 

@@ -62,26 +62,49 @@ impl fmt::Display for SemanticErrorType {
                 )
             }
             SemanticErrorType::UndefinedType(undefined) => {
-                write!(f, "line {}: type {} is not defined.", undefined.position.line, undefined.symbol)
-            },
+                write!(
+                    f,
+                    "line {}: type {} is not defined.",
+                    undefined.position.line, undefined.symbol
+                )
+            }
             SemanticErrorType::UndefinedSubtask(undefined) => {
-                write!(f, "line {}: subtask {} is not defined.", undefined.position.line, undefined.symbol)
+                write!(
+                    f,
+                    "line {}: subtask {} is not defined.",
+                    undefined.position.line, undefined.symbol
+                )
             }
             SemanticErrorType::UndefinedTask(undefined) => {
-                write!(f, "line {}: task {} is not defined.", undefined.position.line, undefined.symbol)
+                write!(
+                    f,
+                    "line {}: task {} is not defined.",
+                    undefined.position.line, undefined.symbol
+                )
             }
             SemanticErrorType::UndefinedParameter(undefined) => {
-                write!(f, "line {}: parameter {} is not defined.", undefined.position.line, undefined.symbol)
+                write!(
+                    f,
+                    "line {}: parameter {} is not defined.",
+                    undefined.position.line, undefined.symbol
+                )
             }
             SemanticErrorType::UndefinedObject(undefined) => {
-                write!(f, "line {}: object {} is not defined.", undefined.position.line, undefined.symbol)
+                write!(
+                    f,
+                    "line {}: object {} is not defined.",
+                    undefined.position.line, undefined.symbol
+                )
             }
             // Inconsistency Error
             SemanticErrorType::InconsistentPredicateArity(ar_error) => {
                 write!(
                     f,
                     "line {}: predicate {} takes {} parameters, but {} are given.",
-                    ar_error.position.line, ar_error.symbol, ar_error.expected_arity, ar_error.found_arity
+                    ar_error.position.line,
+                    ar_error.symbol,
+                    ar_error.expected_arity,
+                    ar_error.found_arity
                 )
             }
             SemanticErrorType::InconsistentTaskArity(ar_error) => {
@@ -116,7 +139,11 @@ pub struct TypeError {
 
 impl fmt::Display for TypeError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "line {}: Type error for variable {}. ", self.position.line, self.var_name)?;
+        write!(
+            f,
+            "line {}: Type error for variable {}. ",
+            self.position.line, self.var_name
+        )?;
         match (&self.expected, &self.found) {
             (Some(expected), Some(found)) => {
                 write!(

@@ -201,6 +201,9 @@ impl<'a> DomainSemanticAnalyzer<'a> {
         let tdg = TDG::new(self.domain);
         for task in declared_tasks.iter() {
             let reachables = tdg.reachable(&task.name);
+            // Preserve compound reachability as part of the computed result even
+            // though this warning only depends on primitive reachability.
+            let _ = reachables.compounds.len();
             if (reachables.primitives.len() == 0) && (reachables.nullable == false) {
                 warnings.push(WarningType::NoPrimitiveRefinement(WarningInfo {
                     symbol: task.name.to_string(),
@@ -220,7 +223,7 @@ impl<'a> DomainSemanticAnalyzer<'a> {
     }
 
     // returns declared predicates (if there is no error)
-    fn verify_predicates(&'a self) -> Result<HashSet<&'a Predicate>, SemanticErrorType> {
+    fn verify_predicates(&'a self) -> Result<HashSet<&'a Predicate<'a>>, SemanticErrorType> {
         let mut declared_predicates = HashSet::new();
         let mut predicate_positions = HashMap::new();
         for predicate in self.domain.predicates.iter() {
@@ -246,7 +249,7 @@ impl<'a> DomainSemanticAnalyzer<'a> {
     }
 
     // returns declared compound tasks (if there is no error)
-    fn verify_compound_tasks(&'a self) -> Result<HashSet<&Task<'a>>, SemanticErrorType> {
+    fn verify_compound_tasks(&'a self) -> Result<HashSet<&'a Task<'a>>, SemanticErrorType> {
         let mut declared_tasks = HashSet::new();
         let mut task_positions = HashMap::new();
         for task in self.domain.compound_tasks.iter() {

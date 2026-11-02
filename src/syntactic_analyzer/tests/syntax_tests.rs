@@ -1024,7 +1024,8 @@ mod tests {
                 (distance ?wp1 - waypoint ?wp2 - waypoint)
             )
         )",
-        ).into_bytes();
+        )
+        .into_bytes();
         let lexer = LexicalAnalyzer::new(&program);
         match Parser::new(lexer).parse() {
             Ok(AbstractSyntaxTree::Domain(ast)) => {
@@ -1155,7 +1156,7 @@ mod tests {
         .into_bytes();
         let lexer = LexicalAnalyzer::new(&program);
         match Parser::new(lexer).parse() {
-            Ok(AbstractSyntaxTree::Domain(ast)) => {}
+            Ok(AbstractSyntaxTree::Domain(_)) => {}
             Ok(_) => panic!(),
             Err(token) => panic!("{:?}", token),
         }
@@ -1176,7 +1177,7 @@ mod tests {
         .into_bytes();
         let lexer = LexicalAnalyzer::new(&program);
         match Parser::new(lexer).parse() {
-            Ok(AbstractSyntaxTree::Domain(ast)) => {}
+            Ok(AbstractSyntaxTree::Domain(_)) => {}
             Ok(_) => panic!(),
             Err(token) => panic!("{:?}", token),
         }

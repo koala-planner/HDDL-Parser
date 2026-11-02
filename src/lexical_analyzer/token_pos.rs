@@ -1,6 +1,4 @@
-use std::fmt;
-
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 
 #[derive(Debug, Clone, Copy, Deserialize, Default)]
 pub struct TokenPosition {

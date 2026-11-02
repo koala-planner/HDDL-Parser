@@ -15,9 +15,7 @@ impl<'a> Transpiler<'a> {
             match requirement {
                 RequirementType::UniversalPreconditions
                 | RequirementType::ExistentialPreconditions
-                | RequirementType::QuantifiedPreconditions => {
-                    remove_quantifiers = true
-                }
+                | RequirementType::QuantifiedPreconditions => remove_quantifiers = true,
                 RequirementType::Equality => compile_equality = true,
                 _ => {}
             }
@@ -31,15 +29,24 @@ impl<'a> Transpiler<'a> {
         }
 
         // names already in use; synthesized copies must not collide with them
-        let compound_task_names: HashSet<&'a str> =
-            self.program.domain.compound_tasks.iter().map(|task| task.name).collect();
-        let mut task_names: HashSet<&'a str> = self.program.domain
+        let compound_task_names: HashSet<&'a str> = self
+            .program
+            .domain
+            .compound_tasks
+            .iter()
+            .map(|task| task.name)
+            .collect();
+        let mut task_names: HashSet<&'a str> = self
+            .program
+            .domain
             .actions
             .iter()
             .map(|action| action.name)
             .chain(compound_task_names.iter().copied())
             .collect();
-        let mut method_names: HashSet<&'a str> = self.program.domain
+        let mut method_names: HashSet<&'a str> = self
+            .program
+            .domain
             .methods
             .iter()
             .map(|method| method.name.name)
@@ -66,7 +73,7 @@ impl<'a> Transpiler<'a> {
                 kept_actions.push(action);
                 continue;
             }
-            
+
             if compound_task_names.contains(action.name) {
                 return Err(ParsingError::Transformation(format!(
                     "conjunctive-preconditions: cannot wrap action '{}': a compound task of \

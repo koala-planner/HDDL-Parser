@@ -19,13 +19,25 @@ impl fmt::Display for LexicalError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self.error_type {
             LexicalErrorType::InvalidIdentifier => {
-                write!(f, "line {}: '{}' is an invalid identifier.", self.position.line, self.lexeme)
+                write!(
+                    f,
+                    "line {}: '{}' is an invalid identifier.",
+                    self.position.line, self.lexeme
+                )
             }
             LexicalErrorType::InvalidKeyword => {
-                write!(f, "line {}: '{}' is an invalid keyword.", self.position.line, self.lexeme)
+                write!(
+                    f,
+                    "line {}: '{}' is an invalid keyword.",
+                    self.position.line, self.lexeme
+                )
             }
             LexicalErrorType::InvalidRealNumber => {
-                write!(f, "line {}: '{}' is an invalid real number. Expected digits after '.'", self.position.line, self.lexeme)
+                write!(
+                    f,
+                    "line {}: '{}' is an invalid real number. Expected digits after '.'",
+                    self.position.line, self.lexeme
+                )
             }
         }
     }

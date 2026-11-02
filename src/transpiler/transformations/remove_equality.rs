@@ -67,9 +67,11 @@ fn remove_equality_constraints<'a>(program: &mut HDDLProgram<'a>) {
     }
 
     let facts = problem.objects.iter().map(|o| {
-        Predicate::new(PRED_NAME, TokenPosition::default(), vec![
-            o.clone(), o.clone()
-        ])
+        Predicate::new(
+            PRED_NAME,
+            TokenPosition::default(),
+            vec![o.clone(), o.clone()],
+        )
     });
     problem.extend_init_state(facts.collect());
 }

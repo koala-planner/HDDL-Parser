@@ -1,6 +1,6 @@
 extern crate hddl_analyzer;
 
-use hddl_analyzer::{HDDLProgram, ParsingError, SemanticErrorType, WarningType};
+use hddl_analyzer::{HDDLProgram, SemanticErrorType, WarningType};
 use std::fs;
 
 #[test]
@@ -409,7 +409,7 @@ pub fn no_primitive_refinement_validation_test() {
                 _ => panic!(),
             }
         }
-        Err(err) => {
+        Err(_) => {
             panic!()
         }
     }
@@ -429,7 +429,7 @@ pub fn no_method_validation_test() {
                 _ => panic!(),
             }
         }
-        Err(err) => {
+        Err(_) => {
             panic!()
         }
     }
@@ -441,7 +441,7 @@ pub fn ignore_possibly_complementary_effects_validation_test() {
         fs::read("tests/flawed_domains/possible-complementary-effects-domain.hddl").unwrap();
     match HDDLProgram::from_hddl(&domain, None).and_then(|program| program.verify()) {
         Ok(_) => {}
-        Err(err) => {
+        Err(_) => {
             panic!()
         }
     }

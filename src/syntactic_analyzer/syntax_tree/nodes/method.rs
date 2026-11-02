@@ -14,10 +14,10 @@ pub struct Method<'a> {
     pub params: Vec<Symbol<'a>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub precondition: Option<Formula<'a>>,
-    pub tn: HTN<'a>
+    pub tn: HTN<'a>,
 }
 
-impl <'a> fmt::Display for Method<'a> {
+impl<'a> fmt::Display for Method<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
@@ -27,7 +27,11 @@ impl <'a> fmt::Display for Method<'a> {
             format_call(self.task.name, &self.task_terms),
         )?;
         if let Some(precondition) = &self.precondition {
-            write!(f, "\n :precondition {}", precondition.to_string().replace('\n', "\n "))?;
+            write!(
+                f,
+                "\n :precondition {}",
+                precondition.to_string().replace('\n', "\n ")
+            )?;
         }
         write!(f, "\n {}\n)", self.tn)
     }

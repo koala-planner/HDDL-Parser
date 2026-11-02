@@ -20,7 +20,9 @@ pub fn objects_duplicate_test() {
              :effect (and (not (at p_2)))
             )
             )
-         ) ").into_bytes();
+         ) ",
+    )
+    .into_bytes();
     let domain_lexer = LexicalAnalyzer::new(&domain);
     let domain_parser = Parser::new(domain_lexer);
     let domain_ast = domain_parser.parse().unwrap();
@@ -37,7 +39,8 @@ pub fn objects_duplicate_test() {
                         a -t2
                         )
                     )",
-            ).into_bytes();
+            )
+            .into_bytes();
             let problem_lexer = LexicalAnalyzer::new(&problem);
             let problem_parser = Parser::new(problem_lexer);
             let problem_ast = problem_parser.parse().unwrap();
@@ -50,13 +53,11 @@ pub fn objects_duplicate_test() {
                             assert_eq!(x.first_pos.line, 3);
                             assert_eq!(x.second_pos.line, 6);
                         }
-                        _ => panic!()
-
+                        _ => panic!(),
                     }
                 }
-                _ => panic!("here")
+                _ => panic!("here"),
             }
-
         }
         _ => panic!(),
     }

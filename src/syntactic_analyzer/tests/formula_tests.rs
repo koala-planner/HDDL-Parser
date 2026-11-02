@@ -5,9 +5,9 @@ mod tests {
 
     use std::{assert_eq, panic, vec};
 
-use super::*;
+    use super::*;
 
-    fn atom(name: &str) -> Box<Formula> {
+    fn atom(name: &str) -> Box<Formula<'_>> {
         Box::new(Formula::Atom(Predicate::new_dummy(name)))
     }
 
@@ -21,16 +21,16 @@ use super::*;
 
     #[test]
     pub fn conjunction_of_literals_test() {
-        let formula = Formula::And(vec![
-            atom("p_1"),
-            Box::new(Formula::Not(atom("p_2"))),
-        ]);
+        let formula = Formula::And(vec![atom("p_1"), Box::new(Formula::Not(atom("p_2")))]);
         assert_eq!(formula.is_simple_conjunction(), true);
     }
 
     #[test]
     pub fn bare_literal_conjunction_test() {
-        assert_eq!(Formula::Atom(Predicate::new_dummy("p_1")).is_simple_conjunction(), true);
+        assert_eq!(
+            Formula::Atom(Predicate::new_dummy("p_1")).is_simple_conjunction(),
+            true
+        );
         assert_eq!(Formula::Not(atom("p_1")).is_simple_conjunction(), true);
     }
 
@@ -44,8 +44,10 @@ use super::*;
     pub fn disjunction_not_conjunction_test() {
         let disjunction = Formula::Or(vec![atom("p_1"), atom("p_2")]);
         assert_eq!(disjunction.is_simple_conjunction(), false);
-        let conjoined_disjunction =
-            Formula::And(vec![Box::new(Formula::Or(vec![atom("p_1"), atom("p_2")])), atom("p_3")]);
+        let conjoined_disjunction = Formula::And(vec![
+            Box::new(Formula::Or(vec![atom("p_1"), atom("p_2")])),
+            atom("p_3"),
+        ]);
         assert_eq!(conjoined_disjunction.is_simple_conjunction(), false);
         let xor = Formula::Xor(vec![atom("p_1"), atom("p_2")]);
         assert_eq!(xor.is_simple_conjunction(), false);
@@ -104,14 +106,20 @@ use super::*;
             Ok(AbstractSyntaxTree::Domain(ast)) => {
                 assert_eq!(ast.actions.len(), 2);
                 let a_1 = &ast.actions[0];
-                assert_eq!(a_1.preconditions.as_ref().unwrap().is_simple_conjunction(), true);
+                assert_eq!(
+                    a_1.preconditions.as_ref().unwrap().is_simple_conjunction(),
+                    true
+                );
                 assert_eq!(a_1.effects.as_ref().unwrap().is_simple_conjunction(), true);
                 let a_2 = &ast.actions[1];
-                assert_eq!(a_2.preconditions.as_ref().unwrap().is_simple_conjunction(), false);
+                assert_eq!(
+                    a_2.preconditions.as_ref().unwrap().is_simple_conjunction(),
+                    false
+                );
             }
             _ => panic!("parsing errors"),
         }
-    }    
+    }
 
     #[test]
     fn nnf_then_dnf_test() {
@@ -172,27 +180,27 @@ use super::*;
 
     #[test]
     fn substitute_test() {
-        let predicate1 = Box::new(
-            Formula::Atom(
-                Predicate { name: "a", name_pos: TokenPosition::default(), variables: vec![
-                    Symbol::new_untyped("?x", TokenPosition::default()), Symbol::new_untyped("?y", TokenPosition::default()), 
-                ]}
-            )
-        );
-        let predicate2 = Box::new(
-            Formula::Atom(
-                Predicate { name: "b", name_pos: TokenPosition::default(), variables: vec![
-                    Symbol::new_untyped("?z", TokenPosition::default()), Symbol::new_untyped("?x", TokenPosition::default()), 
-                ]}
-            )
-        );
-        let formula = Formula::And(
-            vec![
-                predicate1,
-                Box::new(Formula::Not(predicate2))
-            ]
-        );
-        match formula.substitute("?x", &Symbol::new_untyped("ground", TokenPosition::default())) {
+        let predicate1 = Box::new(Formula::Atom(Predicate {
+            name: "a",
+            name_pos: TokenPosition::default(),
+            variables: vec![
+                Symbol::new_untyped("?x", TokenPosition::default()),
+                Symbol::new_untyped("?y", TokenPosition::default()),
+            ],
+        }));
+        let predicate2 = Box::new(Formula::Atom(Predicate {
+            name: "b",
+            name_pos: TokenPosition::default(),
+            variables: vec![
+                Symbol::new_untyped("?z", TokenPosition::default()),
+                Symbol::new_untyped("?x", TokenPosition::default()),
+            ],
+        }));
+        let formula = Formula::And(vec![predicate1, Box::new(Formula::Not(predicate2))]);
+        match formula.substitute(
+            "?x",
+            &Symbol::new_untyped("ground", TokenPosition::default()),
+        ) {
             Formula::And(inner) => {
                 assert_eq!(2, inner.len());
                 match &*inner[0] {
@@ -203,7 +211,7 @@ use super::*;
                         assert!(pred.variables[0].symbol_type.is_none());
                         assert_eq!("?y", pred.variables[1].name);
                     }
-                    _ => panic!()
+                    _ => panic!(),
                 }
                 match &*inner[1] {
                     Formula::Not(negated) => match &**negated {
@@ -214,12 +222,12 @@ use super::*;
                             assert_eq!("ground", pred.variables[1].name);
                             assert!(pred.variables[1].symbol_type.is_none());
                         }
-                        _ => panic!()
+                        _ => panic!(),
                     },
-                    _ => panic!()
+                    _ => panic!(),
                 }
             }
-            _ => panic!()
+            _ => panic!(),
         }
     }
 }

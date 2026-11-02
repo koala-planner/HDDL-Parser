@@ -42,10 +42,12 @@ impl<'a> Parser<'a> {
         let mut variant = FileVariant::MaybeNotHDDL;
         if let Ok(Token::Punctuator(PunctuationType::LParentheses)) = self.tokenizer.get_token() {
             if let Ok(Token::Keyword(KeywordName::Define)) = self.tokenizer.get_token() {
-                if let Ok(Token::Punctuator(PunctuationType::LParentheses)) = self.tokenizer.get_token() {
+                if let Ok(Token::Punctuator(PunctuationType::LParentheses)) =
+                    self.tokenizer.get_token()
+                {
                     match self.tokenizer.get_token() {
                         Ok(Token::Keyword(KeywordName::Domain)) => variant = FileVariant::Domain,
-                        Ok(Token::Keyword(KeywordName::Problem)) => variant =  FileVariant::Problem,
+                        Ok(Token::Keyword(KeywordName::Problem)) => variant = FileVariant::Problem,
                         _ => {}
                     }
                 }

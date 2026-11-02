@@ -1,7 +1,3 @@
-use std::{todo, vec};
-
-use super::*;
-use crate::AbstractSyntaxTree::*;
 use crate::*;
 
 impl<'a> Transpiler<'a> {
@@ -129,18 +125,5 @@ impl<'a> Transpiler<'a> {
             })
             .cloned()
             .collect()
-    }
-
-    fn get_objects(
-        &self,
-        of_type: Option<&'a str>,
-        type_checker: &TypeChecker<'a>,
-    ) -> Result<Vec<Symbol<'a>>, ParsingError> {
-        match &self.program.problem {
-            Some(problem) => Ok(Self::objects_of_type(problem, of_type, type_checker)),
-            None => Err(ParsingError::Transformation(
-                "problem file is not provided".to_string(),
-            )),
-        }
     }
 }

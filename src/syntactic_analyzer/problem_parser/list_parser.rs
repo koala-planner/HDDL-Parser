@@ -18,12 +18,7 @@ impl<'a> Parser<'a> {
                     match object_type {
                         Token::Identifier(t) => {
                             for (o, obj_pos) in objects {
-                                result.push(Symbol::new(
-                                    o,
-                                    obj_pos,
-                                    Some(t),
-                                    Some(type_pos),
-                                ));
+                                result.push(Symbol::new(o, obj_pos, Some(t), Some(type_pos)));
                             }
                             objects = vec![];
                         }
