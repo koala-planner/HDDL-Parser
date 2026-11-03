@@ -62,6 +62,12 @@ pub enum OperationType {
     GreaterThan,
     LessThanOrEqual,
     GreaterThanOrEqual,
+    // Numeric effects
+    Assign,
+    Increase,
+    Decrease,
+    ScaleUp,
+    ScaleDown,
 }
 
 impl fmt::Display for OperationType {
@@ -80,6 +86,11 @@ impl fmt::Display for OperationType {
             OperationType::GreaterThan => write!(fmt, ">"),
             OperationType::LessThanOrEqual => write!(fmt, "<="),
             OperationType::GreaterThanOrEqual => write!(fmt, ">="),
+            OperationType::Assign => write!(fmt, "assign"),
+            OperationType::Increase => write!(fmt, "increase"),
+            OperationType::Decrease => write!(fmt, "decrease"),
+            OperationType::ScaleUp => write!(fmt, "scale-up"),
+            OperationType::ScaleDown => write!(fmt, "scale-down"),
         }
     }
 }

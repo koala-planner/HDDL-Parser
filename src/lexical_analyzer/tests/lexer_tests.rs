@@ -277,4 +277,22 @@ mod lexer_test {
             assert_eq!(peek.unwrap(), actual.unwrap());
         }
     }
+
+    #[test]
+    pub fn numeric_operator_recognition_test() {
+        let program =
+            String::from("increase decrease assign scale-up scale-down\n")
+                .into_bytes();
+        let lexer = LexicalAnalyzer::new(&program);
+        for expected in [
+            Token::Operator(OperationType::Increase),
+            Token::Operator(OperationType::Decrease),
+            Token::Operator(OperationType::Assign),
+            Token::Operator(OperationType::ScaleUp),
+            Token::Operator(OperationType::ScaleDown),
+            Token::EOF,
+        ] {
+            assert_eq!(lexer.get_token().unwrap(), expected);
+        }
+    }
 }

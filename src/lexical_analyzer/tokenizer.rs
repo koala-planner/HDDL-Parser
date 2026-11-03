@@ -315,6 +315,12 @@ impl<'a> LexicalAnalyzer<'a> {
             "imply" | "when" => Some(OperationType::Implication),
             // Stochastic operators
             "probabilistic" => Some(OperationType::Probabilistic),
+            // Numeric effect operators
+            "assign" => Some(OperationType::Assign),
+            "increase" => Some(OperationType::Increase),
+            "decrease" => Some(OperationType::Decrease),
+            "scale-up" => Some(OperationType::ScaleUp),
+            "scale-down" => Some(OperationType::ScaleDown),
             _ => None,
         }
     }
