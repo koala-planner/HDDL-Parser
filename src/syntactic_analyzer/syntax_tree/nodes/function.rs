@@ -3,8 +3,8 @@ use std::fmt;
 use serde::{Deserialize, Serialize};
 
 use super::*;
-use crate::transpiler::format_call;
 use crate::TokenPosition;
+use crate::transpiler::format_call;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Function<'a> {

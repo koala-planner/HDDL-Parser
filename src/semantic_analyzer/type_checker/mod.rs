@@ -4,7 +4,7 @@ mod problem_type_checker;
 
 use petgraph::algo::{has_path_connecting, toposort};
 use petgraph::visit::Dfs;
-use petgraph::{prelude::GraphMap, Directed};
+use petgraph::{Directed, prelude::GraphMap};
 
 use super::*;
 

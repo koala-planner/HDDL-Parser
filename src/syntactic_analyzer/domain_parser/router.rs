@@ -85,7 +85,10 @@ impl<'a> Parser<'a> {
                 }
                 token => {
                     let error = SyntacticError {
-                        expected: format!("either ')' to close the definition of {}, or '(' to start defining new components", domain_name),
+                        expected: format!(
+                            "either ')' to close the definition of {}, or '(' to start defining new components",
+                            domain_name
+                        ),
                         found: token.to_string(),
                         position: self.tokenizer.get_last_token_position(),
                     };

@@ -3,8 +3,8 @@ use std::fmt;
 
 use serde::{Deserialize, Serialize};
 
-use crate::transpiler::format_typed_list;
 use crate::NumberType;
+use crate::transpiler::format_typed_list;
 
 use super::*;
 
@@ -317,8 +317,7 @@ impl<'a> Formula<'a> {
         match self {
             Formula::Empty | Formula::Atom(_) | Formula::Equals(_, _) => false,
             Formula::And(inner) | Formula::Or(inner) | Formula::Xor(inner) => {
-                let any_quantified = inner.iter().any(|x| x.is_quantified());
-                any_quantified
+                inner.iter().any(|x| x.is_quantified())
             }
             Formula::Exists(_, _) | Formula::ForAll(_, _) => true,
             Formula::Not(inner) => inner.is_quantified(),

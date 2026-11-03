@@ -93,13 +93,13 @@ impl<'a> TypeChecker<'a> {
         parameters: &Vec<Symbol<'a>>,
     ) -> Option<SemanticErrorType> {
         for parameter in parameters.iter() {
-            if let Some(t) = parameter.symbol_type {
-                if !self.type_hierarchy.contains_node(t) {
-                    return Some(SemanticErrorType::UndefinedType(UndefinedSymbolError {
-                        symbol: parameter.symbol_type.unwrap().to_string(),
-                        position: parameter.type_pos.unwrap_or_default(),
-                    }));
-                }
+            if let Some(t) = parameter.symbol_type
+                && !self.type_hierarchy.contains_node(t)
+            {
+                return Some(SemanticErrorType::UndefinedType(UndefinedSymbolError {
+                    symbol: t.to_string(),
+                    position: parameter.type_pos.unwrap_or_default(),
+                }));
             }
         }
         None

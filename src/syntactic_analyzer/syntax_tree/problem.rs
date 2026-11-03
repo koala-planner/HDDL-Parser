@@ -1,8 +1,8 @@
 use std::fmt;
 
 use super::*;
-use crate::transpiler::{format_block, format_list};
 use crate::TokenPosition;
+use crate::transpiler::{format_block, format_list};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ProblemAST<'a> {

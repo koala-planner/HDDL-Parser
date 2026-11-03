@@ -1,13 +1,13 @@
 use std::fmt;
 
+use petgraph::Directed;
 use petgraph::algo::toposort;
 use petgraph::prelude::GraphMap;
-use petgraph::Directed;
 use serde::{Deserialize, Serialize};
 
 use super::*;
-use crate::transpiler::{format_call, format_typed_list};
 use crate::TokenPosition;
+use crate::transpiler::{format_call, format_typed_list};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct InitialTaskNetwork<'a> {
@@ -76,15 +76,15 @@ impl<'a> fmt::Display for HTN<'a> {
                 .join(" ");
             write!(f, "{} (and {})", keyword, subtasks)?;
         }
-        if let TaskOrdering::Partial(orderings) = &self.orderings {
-            if !orderings.is_empty() {
-                let orderings = orderings
-                    .iter()
-                    .map(|(t1, t2)| format!("(< {} {})", t1, t2))
-                    .collect::<Vec<_>>()
-                    .join(" ");
-                write!(f, "\n :ordering (and {})", orderings)?;
-            }
+        if let TaskOrdering::Partial(orderings) = &self.orderings
+            && !orderings.is_empty()
+        {
+            let orderings = orderings
+                .iter()
+                .map(|(t1, t2)| format!("(< {} {})", t1, t2))
+                .collect::<Vec<_>>()
+                .join(" ");
+            write!(f, "\n :ordering (and {})", orderings)?;
         }
         if let Some(constraints) = &self.constraints {
             if constraints.is_empty() {

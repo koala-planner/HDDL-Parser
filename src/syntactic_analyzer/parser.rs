@@ -40,17 +40,14 @@ impl<'a> Parser<'a> {
     pub fn classify(&self) -> FileVariant {
         self.tokenizer.reset_cursor();
         let mut variant = FileVariant::MaybeNotHDDL;
-        if let Ok(Token::Punctuator(PunctuationType::LParentheses)) = self.tokenizer.get_token() {
-            if let Ok(Token::Keyword(KeywordName::Define)) = self.tokenizer.get_token() {
-                if let Ok(Token::Punctuator(PunctuationType::LParentheses)) =
-                    self.tokenizer.get_token()
-                {
-                    match self.tokenizer.get_token() {
-                        Ok(Token::Keyword(KeywordName::Domain)) => variant = FileVariant::Domain,
-                        Ok(Token::Keyword(KeywordName::Problem)) => variant = FileVariant::Problem,
-                        _ => {}
-                    }
-                }
+        if let Ok(Token::Punctuator(PunctuationType::LParentheses)) = self.tokenizer.get_token()
+            && let Ok(Token::Keyword(KeywordName::Define)) = self.tokenizer.get_token()
+            && let Ok(Token::Punctuator(PunctuationType::LParentheses)) = self.tokenizer.get_token()
+        {
+            match self.tokenizer.get_token() {
+                Ok(Token::Keyword(KeywordName::Domain)) => variant = FileVariant::Domain,
+                Ok(Token::Keyword(KeywordName::Problem)) => variant = FileVariant::Problem,
+                _ => {}
             }
         }
         self.tokenizer.reset_cursor();
@@ -153,9 +150,14 @@ impl<'a> Parser<'a> {
                                                     )),
                                                     token => {
                                                         let error = SyntacticError {
-                                                            expected: format!("the block of the definition of problem '{}' is not closed with ')'", problem_name),
+                                                            expected: format!(
+                                                                "the block of the definition of problem '{}' is not closed with ')'",
+                                                                problem_name
+                                                            ),
                                                             found: token.to_string(),
-                                                            position: self.tokenizer.get_last_token_position(),
+                                                            position: self
+                                                                .tokenizer
+                                                                .get_last_token_position(),
                                                         };
                                                         Err(ParsingError::Syntactic(error))
                                                     }

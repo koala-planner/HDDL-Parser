@@ -60,6 +60,11 @@ jobs:
       - name: Check
         run: cargo check --all-targets
 
+      - name: Check Rust 2024 compatibility lints
+        env:
+          RUSTFLAGS: -D rust-2024-compatibility
+        run: cargo check --all-targets
+
       - name: Clippy
         run: cargo clippy --all-targets -- -D warnings
 

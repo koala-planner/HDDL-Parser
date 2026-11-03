@@ -2,7 +2,7 @@ use std::{borrow::Borrow, fmt, hash::Hash, write};
 
 use serde::{Deserialize, Serialize};
 
-use crate::{transpiler::format_typed_list, TokenPosition};
+use crate::{TokenPosition, transpiler::format_typed_list};
 
 use super::*;
 

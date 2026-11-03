@@ -1,6 +1,6 @@
 use super::*;
-use petgraph::prelude::GraphMap;
 use petgraph::Directed;
+use petgraph::prelude::GraphMap;
 use std::collections::HashSet;
 
 #[derive(Debug)]

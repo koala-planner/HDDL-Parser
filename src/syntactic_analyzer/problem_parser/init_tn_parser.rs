@@ -418,7 +418,7 @@ impl<'a> Parser<'a> {
                                         id: None,
                                         task: id_symbol,
                                         terms,
-                                    })
+                                    });
                                 }
                                 token => {
                                     let error = SyntacticError {

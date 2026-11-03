@@ -443,17 +443,17 @@ impl<'a> Tdg<'a> {
             // nullables induction step
             for (t, methods) in self.edges_from_tasks.iter() {
                 for method in methods {
-                    if let Some(tasks) = self.edges_to_tasks.get(method) {
-                        if tasks.iter().all(|x| match unit_reachability.get(x) {
+                    if let Some(tasks) = self.edges_to_tasks.get(method)
+                        && tasks.iter().all(|x| match unit_reachability.get(x) {
                             Some(set) => {
                                 let intersection: HashSet<&usize> =
                                     set.intersection(&nullables).collect();
                                 !intersection.is_empty()
                             }
                             None => false,
-                        }) {
-                            new_nullables.insert(*t);
-                        }
+                        })
+                    {
+                        new_nullables.insert(*t);
                     }
                 }
             }

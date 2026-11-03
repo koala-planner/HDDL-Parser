@@ -73,7 +73,9 @@ impl<'a> Transpiler<'a> {
                 None => {
                     let untyped_constants = constants.iter().all(|x| x.symbol_type.is_none());
                     if !untyped_constants {
-                        panic!("Typed constants can only be dropped from a domain if a problem is provided")
+                        panic!(
+                            "Typed constants can only be dropped from a domain if a problem is provided"
+                        )
                     }
                 }
             }

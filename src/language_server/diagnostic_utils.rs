@@ -1,11 +1,11 @@
+use crate::ParsingError;
+use crate::SemanticErrorType;
 use crate::lexical_analyzer::LexicalAnalyzer;
 use crate::semantic_analyzer::DomainSemanticAnalyzer;
 use crate::semantic_analyzer::ProblemSemanticAnalyzer;
 use crate::syntactic_analyzer::AbstractSyntaxTree;
 use crate::syntactic_analyzer::FileVariant;
 use crate::syntactic_analyzer::Parser;
-use crate::ParsingError;
-use crate::SemanticErrorType;
 
 use tower_lsp::lsp_types::DocumentDiagnosticReportResult;
 use tower_lsp::lsp_types::RelatedFullDocumentDiagnosticReport;

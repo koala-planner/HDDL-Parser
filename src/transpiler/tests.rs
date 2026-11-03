@@ -436,10 +436,12 @@ pub fn untyping_test() {
         .unwrap()
         .into_program();
     let action = &result.domain.actions[0];
-    assert!(action
-        .parameters
-        .iter()
-        .all(|x| { x.symbol_type.is_none() && x.type_pos.is_none() }));
+    assert!(
+        action
+            .parameters
+            .iter()
+            .all(|x| { x.symbol_type.is_none() && x.type_pos.is_none() })
+    );
     if let Some(Formula::And(prec)) = &action.preconditions {
         assert_eq!(prec.len(), 3);
         if let Formula::Not(inner) = &*prec[0] {
@@ -478,9 +480,10 @@ pub fn untyping_test() {
     if let Some(Formula::And(prec)) = &action.preconditions {
         assert_eq!(prec.len(), 2);
         if let Formula::Exists(vars, body) = &*prec[0] {
-            assert!(vars
-                .iter()
-                .all(|x| { x.symbol_type.is_none() && x.type_pos.is_none() }));
+            assert!(
+                vars.iter()
+                    .all(|x| { x.symbol_type.is_none() && x.type_pos.is_none() })
+            );
             if let Formula::And(inner) = &**body {
                 assert_eq!(inner.len(), 2);
                 if let Atom(typing) = &*inner[0] {
@@ -512,9 +515,10 @@ pub fn untyping_test() {
         panic!()
     }
     if let Some(Formula::ForAll(vars, body)) = &action.effects {
-        assert!(vars
-            .iter()
-            .all(|x| { x.symbol_type.is_none() && x.type_pos.is_none() }));
+        assert!(
+            vars.iter()
+                .all(|x| { x.symbol_type.is_none() && x.type_pos.is_none() })
+        );
         if let Formula::Imply(lhs, rhs) = &**body {
             if let Atom(typing) = &**lhs {
                 assert_eq!(typing.name, "location");
@@ -533,15 +537,18 @@ pub fn untyping_test() {
         panic!()
     }
     let task = &result.domain.compound_tasks[0];
-    assert!(task
-        .parameters
-        .iter()
-        .all(|x| { x.symbol_type.is_none() && x.type_pos.is_none() }));
+    assert!(
+        task.parameters
+            .iter()
+            .all(|x| { x.symbol_type.is_none() && x.type_pos.is_none() })
+    );
     let method = &result.domain.methods[0];
-    assert!(method
-        .params
-        .iter()
-        .all(|x| { x.symbol_type.is_none() && x.type_pos.is_none() }));
+    assert!(
+        method
+            .params
+            .iter()
+            .all(|x| { x.symbol_type.is_none() && x.type_pos.is_none() })
+    );
     let assert_typings = |formula: &Formula, mut types: Vec<&str>| match formula {
         Formula::And(inner) => {
             assert_eq!(inner.len(), types.len());
@@ -564,12 +571,14 @@ pub fn untyping_test() {
         None => panic!(),
         Some(prec) => assert_typings(prec, vec!["location", "location", "car"]),
     }
-    assert!(result
-        .domain
-        .constants
-        .unwrap()
-        .iter()
-        .all(|x| { x.symbol_type.is_none() && x.type_pos.is_none() }));
+    assert!(
+        result
+            .domain
+            .constants
+            .unwrap()
+            .iter()
+            .all(|x| { x.symbol_type.is_none() && x.type_pos.is_none() })
+    );
     let predicates = &result.domain.predicates;
     assert!(predicates.iter().all(|p| {
         p.variables
@@ -680,10 +689,12 @@ pub fn untyping_test() {
         .unwrap();
     assert_eq!(method.task.name, HDDLProgram::HTN_TOP_TASK);
     assert!(method.task_terms.is_empty());
-    assert!(method
-        .params
-        .iter()
-        .all(|x| { x.symbol_type.is_none() && x.type_pos.is_none() }));
+    assert!(
+        method
+            .params
+            .iter()
+            .all(|x| { x.symbol_type.is_none() && x.type_pos.is_none() })
+    );
     match &method.precondition {
         Some(prec) => assert_typings(prec, vec!["location", "location", "vehicle"]),
         None => panic!(),
@@ -704,9 +715,11 @@ pub fn untyping_rejects_invalid_program_test() {
     )";
     let domain_bytes = domain.as_bytes().to_vec();
     let transpiler = Transpiler::from_hddl(&domain_bytes, None).unwrap();
-    assert!(transpiler
-        .transform(crate::Transformation::RemoveTypes)
-        .is_err());
+    assert!(
+        transpiler
+            .transform(crate::Transformation::RemoveTypes)
+            .is_err()
+    );
 }
 
 #[test]

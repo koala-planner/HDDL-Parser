@@ -100,15 +100,21 @@ mod tests {
             Ok(AbstractSyntaxTree::Problem(symbols)) => {
                 assert_eq!(symbols.requirements.len(), 4);
                 assert!(symbols.requirements.contains(&RequirementType::Hierarchy));
-                assert!(symbols
-                    .requirements
-                    .contains(&RequirementType::MethodPreconditions));
-                assert!(symbols
-                    .requirements
-                    .contains(&RequirementType::NegativePreconditions));
-                assert!(symbols
-                    .requirements
-                    .contains(&RequirementType::TypedObjects));
+                assert!(
+                    symbols
+                        .requirements
+                        .contains(&RequirementType::MethodPreconditions)
+                );
+                assert!(
+                    symbols
+                        .requirements
+                        .contains(&RequirementType::NegativePreconditions)
+                );
+                assert!(
+                    symbols
+                        .requirements
+                        .contains(&RequirementType::TypedObjects)
+                );
             }
             _ => panic!("parsing errors"),
         }

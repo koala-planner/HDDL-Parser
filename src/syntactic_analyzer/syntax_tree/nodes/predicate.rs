@@ -2,8 +2,8 @@ use std::{fmt, hash::Hash};
 
 use serde::{Deserialize, Serialize};
 
-use crate::transpiler::format_call;
 use crate::TokenPosition;
+use crate::transpiler::format_call;
 
 use super::*;
 
