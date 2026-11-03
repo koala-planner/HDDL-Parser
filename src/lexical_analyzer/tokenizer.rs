@@ -89,9 +89,9 @@ impl<'a> LexicalAnalyzer<'a> {
                         "universal-preconditions" => {
                             Ok(Token::Requirement(RequirementType::UniversalPreconditions))
                         }
-                        "existential-preconditions" => {
-                            Ok(Token::Requirement(RequirementType::ExistentialPreconditions))
-                        }
+                        "existential-preconditions" => Ok(Token::Requirement(
+                            RequirementType::ExistentialPreconditions,
+                        )),
                         "quantified-preconditions" => {
                             Ok(Token::Requirement(RequirementType::QuantifiedPreconditions))
                         }
@@ -101,12 +101,8 @@ impl<'a> LexicalAnalyzer<'a> {
                         "probabilistic-effects" => {
                             Ok(Token::Requirement(RequirementType::ProbabilisticEffects))
                         }
-                        "domain-axioms" => {
-                            Ok(Token::Requirement(RequirementType::DomainAxioms))
-                        }
-                        "adl" => {
-                            Ok(Token::Requirement(RequirementType::ADL))
-                        }
+                        "domain-axioms" => Ok(Token::Requirement(RequirementType::DomainAxioms)),
+                        "adl" => Ok(Token::Requirement(RequirementType::ADL)),
                         // Keywords
                         "requirements" => Ok(Token::Keyword(KeywordName::Requirements)),
                         "objects" => Ok(Token::Keyword(KeywordName::Objects)),

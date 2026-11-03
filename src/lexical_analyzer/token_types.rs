@@ -116,7 +116,7 @@ impl fmt::Display for RequirementType {
             RequirementType::ProbabilisticEffects => ":probabilistic-effects",
             RequirementType::ConditionalEffects => ":conditional-effects",
             RequirementType::DomainAxioms => ":domain-axioms",
-            RequirementType::ADL => ":adl"
+            RequirementType::ADL => ":adl",
         };
         write!(f, "{}", requirement)
     }
