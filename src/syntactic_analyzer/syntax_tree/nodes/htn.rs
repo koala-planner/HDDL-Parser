@@ -127,12 +127,7 @@ impl<'a> TaskOrdering<'a> {
             TaskOrdering::Total => true,
             TaskOrdering::Partial(orderings) => {
                 let ordering_graph = GraphMap::<_, (), Directed>::from_edges(orderings);
-                match toposort(&ordering_graph, None) {
-                    Ok(_) => true,
-                    Err(_) => {
-                        return false;
-                    }
-                }
+                toposort(&ordering_graph, None).is_ok()
             }
         }
     }

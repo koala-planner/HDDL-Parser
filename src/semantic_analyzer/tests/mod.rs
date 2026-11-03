@@ -9,4 +9,3 @@ mod warning_tests;
 use super::*;
 use crate::lexical_analyzer::*;
 use crate::syntactic_analyzer::*;
-use analyzers::*;

@@ -56,8 +56,8 @@ mod tests {
                 assert_eq!(symbols.objects[3].type_pos.unwrap().line, 5);
                 assert_eq!(symbols.objects[4].name, "t");
                 assert_eq!(symbols.objects[4].name_pos.line, 5);
-                assert_eq!(symbols.objects[4].symbol_type.is_none(), true);
-                assert_eq!(symbols.objects[4].type_pos.is_none(), true);
+                assert!(symbols.objects[4].symbol_type.is_none());
+                assert!(symbols.objects[4].type_pos.is_none());
             }
             _ => panic!("parsing errors"),
         }
@@ -99,28 +99,16 @@ mod tests {
         match Parser::new(lexer).parse() {
             Ok(AbstractSyntaxTree::Problem(symbols)) => {
                 assert_eq!(symbols.requirements.len(), 4);
-                assert_eq!(
-                    symbols.requirements.contains(&RequirementType::Hierarchy),
-                    true
-                );
-                assert_eq!(
-                    symbols
-                        .requirements
-                        .contains(&RequirementType::MethodPreconditions),
-                    true
-                );
-                assert_eq!(
-                    symbols
-                        .requirements
-                        .contains(&RequirementType::NegativePreconditions),
-                    true
-                );
-                assert_eq!(
-                    symbols
-                        .requirements
-                        .contains(&RequirementType::TypedObjects),
-                    true
-                );
+                assert!(symbols.requirements.contains(&RequirementType::Hierarchy));
+                assert!(symbols
+                    .requirements
+                    .contains(&RequirementType::MethodPreconditions));
+                assert!(symbols
+                    .requirements
+                    .contains(&RequirementType::NegativePreconditions));
+                assert!(symbols
+                    .requirements
+                    .contains(&RequirementType::TypedObjects));
             }
             _ => panic!("parsing errors"),
         }
@@ -227,7 +215,7 @@ mod tests {
                 assert_eq!(method.tn.subtasks[1].terms[0].name, "?p1");
                 assert_eq!(method.tn.subtasks[1].terms[1].name, "?l2");
                 assert_eq!(method.tn.subtasks[1].terms[2].name, "?l3");
-                assert_eq!(method.precondition.is_none(), true);
+                assert!(method.precondition.is_none());
             }
             _ => panic!("AST not created"),
         }
@@ -269,52 +257,47 @@ mod tests {
                 assert_eq!(method.tn.subtasks[1].terms[1].name, "?l2");
                 assert_eq!(method.tn.subtasks[1].terms[2].name, "?l3");
                 match &method.precondition {
-                    Some(formula) => match formula {
-                        Formula::And(predicates) => {
-                            assert_eq!(predicates.len(), 3);
-                            let pred1 = &*predicates[0];
-                            match pred1 {
-                                Formula::Atom(pred) => {
-                                    assert_eq!(pred.name, "at");
-                                    assert_eq!(pred.name_pos.line, 5);
-                                    assert_eq!(pred.variables.len(), 2);
-                                }
-                                _ => {
-                                    panic!("wrong formula parsing")
-                                }
+                    Some(Formula::And(predicates)) => {
+                        assert_eq!(predicates.len(), 3);
+                        let pred1 = &*predicates[0];
+                        match pred1 {
+                            Formula::Atom(pred) => {
+                                assert_eq!(pred.name, "at");
+                                assert_eq!(pred.name_pos.line, 5);
+                                assert_eq!(pred.variables.len(), 2);
                             }
-                            let pred2 = &*predicates[1];
-                            match pred2 {
-                                Formula::Atom(pred) => {
-                                    assert_eq!(pred.name, "driver");
-                                    assert_eq!(pred.name_pos.line, 6);
-                                    assert_eq!(pred.variables.len(), 1);
-                                }
-                                _ => {
-                                    panic!("wrong formula parsing")
-                                }
+                            _ => {
+                                panic!("wrong formula parsing")
                             }
+                        }
+                        let pred2 = &*predicates[1];
+                        match pred2 {
+                            Formula::Atom(pred) => {
+                                assert_eq!(pred.name, "driver");
+                                assert_eq!(pred.name_pos.line, 6);
+                                assert_eq!(pred.variables.len(), 1);
+                            }
+                            _ => {
+                                panic!("wrong formula parsing")
+                            }
+                        }
 
-                            let neq = &*predicates[2];
-                            match neq {
-                                Formula::Not(equality) => match **equality {
-                                    Formula::Equals(a, b) => {
-                                        assert_eq!(a, "?l1");
-                                        assert_eq!(b, "?l2");
-                                    }
-                                    _ => {
-                                        panic!("equality constraint not parsed successfully")
-                                    }
-                                },
-                                _ => {
-                                    panic!("wrong formula parsing")
+                        let neq = &*predicates[2];
+                        match neq {
+                            Formula::Not(equality) => match **equality {
+                                Formula::Equals(a, b) => {
+                                    assert_eq!(a, "?l1");
+                                    assert_eq!(b, "?l2");
                                 }
+                                _ => {
+                                    panic!("equality constraint not parsed successfully")
+                                }
+                            },
+                            _ => {
+                                panic!("wrong formula parsing")
                             }
                         }
-                        _ => {
-                            panic!("wrong formula parsing")
-                        }
-                    },
+                    }
                     _ => {
                         panic!("wrong formula parsing")
                     }
@@ -352,41 +335,36 @@ mod tests {
                 assert_eq!(method.task_terms[1].name, "?l1");
                 assert_eq!(method.task_terms[2].name, "?l2");
                 match &method.precondition {
-                    Some(formula) => match formula {
-                        Formula::ForAll(params, exp) => {
-                            assert_eq!(params.len(), 2);
-                            assert_eq!(params[0].name, "?l1");
-                            match params[0].symbol_type {
-                                Some(x) => {
-                                    assert_eq!(x, "loc");
-                                }
-                                _ => {
-                                    panic!("wrong parameter type")
-                                }
+                    Some(Formula::ForAll(params, exp)) => {
+                        assert_eq!(params.len(), 2);
+                        assert_eq!(params[0].name, "?l1");
+                        match params[0].symbol_type {
+                            Some(x) => {
+                                assert_eq!(x, "loc");
                             }
-                            assert_eq!(params[1].name, "?l2");
-                            match params[1].symbol_type {
-                                Some(x) => {
-                                    assert_eq!(x, "loc");
-                                }
-                                _ => {
-                                    panic!("wrong parameter type")
-                                }
-                            }
-                            match **exp {
-                                Formula::Equals(a, b) => {
-                                    assert_eq!(a, "?l1");
-                                    assert_eq!(b, "?l2");
-                                }
-                                _ => {
-                                    panic!("wrong expression parsing")
-                                }
+                            _ => {
+                                panic!("wrong parameter type")
                             }
                         }
-                        _ => {
-                            panic!("wrong formula parsing")
+                        assert_eq!(params[1].name, "?l2");
+                        match params[1].symbol_type {
+                            Some(x) => {
+                                assert_eq!(x, "loc");
+                            }
+                            _ => {
+                                panic!("wrong parameter type")
+                            }
                         }
-                    },
+                        match **exp {
+                            Formula::Equals(a, b) => {
+                                assert_eq!(a, "?l1");
+                                assert_eq!(b, "?l2");
+                            }
+                            _ => {
+                                panic!("wrong expression parsing")
+                            }
+                        }
+                    }
                     _ => {
                         panic!("wrong formula parsing")
                     }
@@ -455,13 +433,13 @@ mod tests {
                         Some(p) => {
                             assert_eq!(p.len(), 1);
                             assert_eq!(p[0].name, "?d");
-                            assert_eq!(p[0].symbol_type.is_none(), true);
+                            assert!(p[0].symbol_type.is_none());
                         }
                         _ => panic!("wrong set of params"),
                     }
                     match tn.tn.orderings {
                         TaskOrdering::Partial(o) => {
-                            assert_eq!(o.contains(&("task0", "task1")), true);
+                            assert!(o.contains(&("task0", "task1")));
                             assert_eq!(o.len(), 1);
                         }
                         _ => {
@@ -555,7 +533,7 @@ mod tests {
         match Parser::new(lexer).parse() {
             Ok(AbstractSyntaxTree::Problem(ast)) => match ast.init_tn {
                 Some(tn) => {
-                    assert_eq!(tn.parameters.is_none(), true);
+                    assert!(tn.parameters.is_none());
                     match tn.tn.orderings {
                         TaskOrdering::Total => {}
                         _ => {
@@ -1194,7 +1172,7 @@ mod tests {
         match Parser::new(lexer).parse() {
             Ok(AbstractSyntaxTree::Problem(ast)) => match ast.init_tn {
                 Some(tn) => {
-                    assert_eq!(tn.parameters.is_none(), true);
+                    assert!(tn.parameters.is_none());
                     assert_eq!(tn.tn.subtasks.len(), 0);
                 }
                 _ => panic!(),

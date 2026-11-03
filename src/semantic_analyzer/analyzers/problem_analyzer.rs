@@ -45,7 +45,7 @@ impl<'a> ProblemSemanticAnalyzer<'a> {
 
         // check the consistency of init predicates
         for predicate in self.problem.init_state.iter() {
-            let _ = self.type_checker.check_predicate_instantiation(predicate)?;
+            self.type_checker.check_predicate_instantiation(predicate)?;
         }
 
         // check the initial task network
@@ -57,28 +57,18 @@ impl<'a> ProblemSemanticAnalyzer<'a> {
             }
 
             for subtask in htn.tn.subtasks.iter() {
-                let _ = self
-                    .type_checker
+                self.type_checker
                     .check_subtask_instantiation(subtask, &htn.parameters)?;
             }
         }
 
         // check goal description
-        match &self.problem.goal {
-            Some(goal) => {
-                for predicate in goal.get_propositional_predicates() {
-                    let _ = self.type_checker.check_predicate_instantiation(predicate)?;
-                }
+        if let Some(goal) = &self.problem.goal {
+            for predicate in goal.get_propositional_predicates() {
+                self.type_checker.check_predicate_instantiation(predicate)?;
             }
-            None => {}
         }
 
-        Ok(self
-            .type_checker
-            .symbol_table
-            .warnings
-            .iter()
-            .cloned()
-            .collect())
+        Ok(self.type_checker.symbol_table.warnings.to_vec())
     }
 }

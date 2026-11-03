@@ -79,7 +79,7 @@ impl<'a> DomainTypeChecker<'a> {
                         .map(|x| &x.symbol_type)
                         .collect();
                     // Assert args have the same arity
-                    if &instantiated_vars.len() != &expected_list.len() {
+                    if instantiated_vars.len() != expected_list.len() {
                         return Err(SemanticErrorType::InconsistentPredicateArity(ArityError {
                             symbol: instantiated_predicate.name.to_string(),
                             expected_arity: expected_list.len() as u32,
@@ -87,9 +87,7 @@ impl<'a> DomainTypeChecker<'a> {
                             position: instantiated_predicate.name_pos,
                         }));
                     }
-                    for ((var, f), e) in
-                        instantiated_vars.into_iter().zip(expected_list.into_iter())
-                    {
+                    for ((var, f), e) in instantiated_vars.into_iter().zip(expected_list) {
                         if !self.generic_type_checker.is_var_type_consistent(*f, *e) {
                             return Err(SemanticErrorType::InconsistentPredicateArgType(
                                 TypeError {
@@ -176,7 +174,7 @@ impl<'a> DomainTypeChecker<'a> {
                         }));
                     }
                 }
-                return Ok(());
+                Ok(())
             }
             None => match declared_tasks.iter().find(|x| x.name == task.name) {
                 Some(definition) => {
@@ -208,14 +206,12 @@ impl<'a> DomainTypeChecker<'a> {
                             }));
                         }
                     }
-                    return Ok(());
+                    Ok(())
                 }
-                None => {
-                    return Err(SemanticErrorType::UndefinedSubtask(UndefinedSymbolError {
-                        symbol: task.name.to_string(),
-                        position: task.name_pos,
-                    }));
-                }
+                None => Err(SemanticErrorType::UndefinedSubtask(UndefinedSymbolError {
+                    symbol: task.name.to_string(),
+                    position: task.name_pos,
+                })),
             },
         }
     }

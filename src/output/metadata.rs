@@ -87,7 +87,7 @@ impl Display for MetaData {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
         writeln!(f, "Description of Domain `{}`", self.domain_name)?;
         writeln!(f, "\tRecursion Structure: {}", self.recursion)?;
-        if self.nullables.len() == 0 {
+        if self.nullables.is_empty() {
             writeln!(f, "\tNullable Tasks: None")?;
         } else {
             writeln!(f, "\tNullable Tasks: {}", self.nullables.len())?;

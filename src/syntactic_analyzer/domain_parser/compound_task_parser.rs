@@ -8,7 +8,7 @@ impl<'a> Parser<'a> {
                 match self.tokenizer.get_token()? {
                     Token::Keyword(KeywordName::Parameters) => match self.tokenizer.get_token()? {
                         Token::Punctuator(PunctuationType::LParentheses) => {
-                            return Ok(Task::new(task_name, task_name_pos, self.parse_args()?))
+                            Ok(Task::new(task_name, task_name_pos, self.parse_args()?))
                         }
                         token => {
                             let error = SyntacticError {
@@ -16,7 +16,7 @@ impl<'a> Parser<'a> {
                                 found: token.to_string(),
                                 position: self.tokenizer.get_last_token_position(),
                             };
-                            return Err(ParsingError::Syntactic(error));
+                            Err(ParsingError::Syntactic(error))
                         }
                     },
                     token => {
@@ -29,7 +29,7 @@ impl<'a> Parser<'a> {
                             found: token.to_string(),
                             position: self.tokenizer.get_last_token_position(),
                         };
-                        return Err(ParsingError::Syntactic(error));
+                        Err(ParsingError::Syntactic(error))
                     }
                 }
             }
@@ -39,7 +39,7 @@ impl<'a> Parser<'a> {
                     found: token.to_string(),
                     position: self.tokenizer.get_last_token_position(),
                 };
-                return Err(ParsingError::Syntactic(error));
+                Err(ParsingError::Syntactic(error))
             }
         }
     }

@@ -2,15 +2,15 @@ use std::collections::{HashMap, HashSet, VecDeque};
 
 use super::*;
 
-pub struct TDG<'a> {
+pub struct Tdg<'a> {
     tasks: Vec<(&'a str, TaskType)>,
     methods: Vec<(&'a Symbol<'a>, HTN<'a>)>,
     edges_from_tasks: HashMap<usize, HashSet<usize>>,
     edges_to_tasks: HashMap<usize, HashSet<usize>>,
 }
 
-impl<'a> TDG<'a> {
-    pub fn new(domain: &'a DomainAST<'a>) -> TDG<'a> {
+impl<'a> Tdg<'a> {
+    pub fn new(domain: &'a DomainAST<'a>) -> Tdg<'a> {
         // collect task names
         let mut tasks: Vec<(&str, TaskType)> = vec![];
         tasks.extend(
@@ -60,9 +60,9 @@ impl<'a> TDG<'a> {
                 .collect();
             to_tasks.insert(method_index, tasks);
         }
-        TDG {
-            tasks: tasks,
-            methods: methods,
+        Tdg {
+            tasks,
+            methods,
             edges_from_tasks: to_methods,
             edges_to_tasks: to_tasks,
         }
@@ -74,8 +74,7 @@ impl<'a> TDG<'a> {
             .tasks
             .iter()
             .enumerate()
-            .filter(|(_, (name, _))| *name == task_name)
-            .next()
+            .find(|(_, (name, _))| *name == task_name)
             .unwrap()
         {
             // if primitive, the only reachable task is itself
@@ -96,17 +95,14 @@ impl<'a> TDG<'a> {
             let task = queue.pop_front().unwrap();
             if !visited.contains(&task) {
                 visited.insert(task);
-                match self.edges_from_tasks.get(&task) {
-                    Some(methods) => {
-                        for m in methods {
-                            let new_tasks = self.edges_to_tasks.get(m).unwrap();
-                            for new_task in new_tasks.iter() {
-                                reach_t.insert(*new_task);
-                                queue.push_back(*new_task);
-                            }
+                if let Some(methods) = self.edges_from_tasks.get(&task) {
+                    for m in methods {
+                        let new_tasks = self.edges_to_tasks.get(m).unwrap();
+                        for new_task in new_tasks.iter() {
+                            reach_t.insert(*new_task);
+                            queue.push_back(*new_task);
                         }
                     }
-                    None => {}
                 }
             }
         }
@@ -334,7 +330,7 @@ impl<'a> TDG<'a> {
                     });
                 method.subtasks[..pos]
                     .iter()
-                    .map(|s| self.get_task_index(&s.task.name))
+                    .map(|s| self.get_task_index(s.task.name))
                     .collect()
             }
             TaskOrdering::Partial(orderings) => {
@@ -382,7 +378,7 @@ impl<'a> TDG<'a> {
         method
             .subtasks
             .iter()
-            .map(|s| self.get_task_index(&s.task.name))
+            .map(|s| self.get_task_index(s.task.name))
             .filter(|t| match remove.get_mut(t) {
                 Some(c) if *c > 0 => {
                     *c -= 1;
@@ -410,7 +406,7 @@ impl<'a> TDG<'a> {
             .filter_map(|(task, methods)| {
                 for method in methods.iter() {
                     let tasks = self.edges_to_tasks.get(method).unwrap();
-                    if tasks.len() == 0 {
+                    if tasks.is_empty() {
                         return Some(*task);
                     }
                 }
@@ -452,7 +448,7 @@ impl<'a> TDG<'a> {
                             Some(set) => {
                                 let intersection: HashSet<&usize> =
                                     set.intersection(&nullables).collect();
-                                intersection.len() != 0
+                                !intersection.is_empty()
                             }
                             None => false,
                         }) {
@@ -466,11 +462,8 @@ impl<'a> TDG<'a> {
             for (c, previous_reachables) in unit_reachability.iter() {
                 let mut change = previous_reachables.clone();
                 for previous_reachable in previous_reachables {
-                    match unit_reachability.get(previous_reachable) {
-                        Some(tasks) => {
-                            change = change.union(tasks).cloned().collect();
-                        }
-                        None => {}
+                    if let Some(tasks) = unit_reachability.get(previous_reachable) {
+                        change = change.union(tasks).cloned().collect();
                     }
                 }
                 for method in self.edges_from_tasks.get(c).unwrap() {
@@ -508,7 +501,7 @@ impl<'a> TDG<'a> {
             }
             //// unit reachability
             for (task, new_reachable) in new_unit_reachable.iter() {
-                let prev = unit_reachability.get_mut(&task).unwrap();
+                let prev = unit_reachability.get_mut(task).unwrap();
                 prev.extend(new_reachable);
             }
         }

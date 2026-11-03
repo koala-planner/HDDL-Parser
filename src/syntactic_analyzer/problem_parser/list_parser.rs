@@ -24,7 +24,7 @@ impl<'a> Parser<'a> {
                         }
                         token => {
                             let error = SyntacticError {
-                                expected: format!("The type of objects"),
+                                expected: "The type of objects".to_string(),
                                 found: token.to_string(),
                                 position: type_pos,
                             };

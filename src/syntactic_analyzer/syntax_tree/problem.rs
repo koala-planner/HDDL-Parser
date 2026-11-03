@@ -65,9 +65,9 @@ impl<'a> ProblemAST<'a> {
 
 impl<'a> fmt::Display for ProblemAST<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
+        writeln!(
             f,
-            "(define (problem {}) (:domain {})\n",
+            "(define (problem {}) (:domain {})",
             self.name, self.domain_name
         )?;
         if !self.requirements.is_empty() {

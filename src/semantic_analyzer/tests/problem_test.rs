@@ -1,7 +1,7 @@
 use super::*;
 
 fn get_domain() -> Vec<u8> {
-    return  "
+    "
     (define (domain Depot)
             (:requirements :negative-preconditions
                 :hierarchy
@@ -132,7 +132,7 @@ fn get_domain() -> Vec<u8> {
             :parameters ()
             :precondition ()
             :effect ())
-))".as_bytes().to_vec();
+))".as_bytes().to_vec()
 }
 
 #[test]

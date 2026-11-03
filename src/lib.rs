@@ -72,7 +72,7 @@ impl<'a> HDDLProgram<'a> {
     }
 
     pub fn metadata(&self) -> Result<MetaData, ParsingError> {
-        let tdg = TDG::new(&self.domain);
+        let tdg = Tdg::new(&self.domain);
         let nullables = tdg.compute_nullables();
         let recursion_type = tdg.classify_cycles(&nullables);
         Ok(MetaData {

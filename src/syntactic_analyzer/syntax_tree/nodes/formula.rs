@@ -257,7 +257,7 @@ impl<'a> Formula<'a> {
 
     pub fn get_propositional_predicates(&self) -> Vec<&Predicate<'a>> {
         let mut predicates = vec![];
-        match &*self {
+        match self {
             Formula::Empty => {}
             Formula::Atom(predicate) => {
                 predicates.push(predicate);
@@ -282,7 +282,7 @@ impl<'a> Formula<'a> {
             // not propositional
             Formula::ForAll(_, _) | Formula::Exists(_, _) => {}
         }
-        return predicates;
+        predicates
     }
 
     pub fn is_simple_conjunction(&self) -> bool {
@@ -317,8 +317,8 @@ impl<'a> Formula<'a> {
         match self {
             Formula::Empty | Formula::Atom(_) | Formula::Equals(_, _) => false,
             Formula::And(inner) | Formula::Or(inner) | Formula::Xor(inner) => {
-                let any_quantified = inner.iter().map(|x| x.is_quantified()).any(|x| x);
-                return any_quantified;
+                let any_quantified = inner.iter().any(|x| x.is_quantified());
+                any_quantified
             }
             Formula::Exists(_, _) | Formula::ForAll(_, _) => true,
             Formula::Not(inner) => inner.is_quantified(),

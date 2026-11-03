@@ -188,8 +188,8 @@ pub enum NumberType {
 impl fmt::Display for NumberType {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            NumberType::Integer(n) => return write!(f, "{}", n),
-            NumberType::Real(r) => return write!(f, "{}", r),
+            NumberType::Integer(n) => write!(f, "{}", n),
+            NumberType::Real(r) => write!(f, "{}", r),
         }
     }
 }

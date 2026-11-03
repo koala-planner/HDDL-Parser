@@ -29,20 +29,18 @@ impl<'a> Parser<'a> {
     // parses a SINGLE predicate definition
     fn parse_predicate_definition(&self) -> Result<Predicate<'a>, ParsingError> {
         match self.tokenizer.get_token()? {
-            Token::Identifier(predicate_name) => {
-                return Ok(Predicate {
-                    name: predicate_name,
-                    name_pos: self.tokenizer.get_last_token_position(),
-                    variables: self.parse_args()?,
-                })
-            }
+            Token::Identifier(predicate_name) => Ok(Predicate {
+                name: predicate_name,
+                name_pos: self.tokenizer.get_last_token_position(),
+                variables: self.parse_args()?,
+            }),
             token => {
                 let error = SyntacticError {
                     expected: "a predicate name".to_string(),
                     found: token.to_string(),
                     position: self.tokenizer.get_last_token_position(),
                 };
-                return Err(ParsingError::Syntactic(error));
+                Err(ParsingError::Syntactic(error))
             }
         }
     }

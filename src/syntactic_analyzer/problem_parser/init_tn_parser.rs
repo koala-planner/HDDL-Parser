@@ -2,54 +2,46 @@ use super::*;
 
 impl<'a> Parser<'a> {
     pub fn parse_initial_tn(&self) -> Result<InitialTaskNetwork<'a>, ParsingError> {
-        loop {
-            match self.tokenizer.lookahead()? {
-                Token::Keyword(KeywordName::Parameters) => {
-                    let _ = self.tokenizer.get_token()?;
-                    match self.tokenizer.get_token()? {
-                        Token::Punctuator(PunctuationType::LParentheses) => {
-                            return Ok(InitialTaskNetwork {
-                                parameters: Some(self.parse_args()?),
-                                tn: self.parse_htn()?,
-                            });
-                        }
-                        token => {
-                            let error = SyntacticError {
-                                expected: "'(' afer keyword :parameters".to_string(),
-                                found: token.to_string(),
-                                position: self.tokenizer.get_last_token_position(),
-                            };
-                            return Err(ParsingError::Syntactic(error));
-                        }
+        match self.tokenizer.lookahead()? {
+            Token::Keyword(KeywordName::Parameters) => {
+                let _ = self.tokenizer.get_token()?;
+                match self.tokenizer.get_token()? {
+                    Token::Punctuator(PunctuationType::LParentheses) => Ok(InitialTaskNetwork {
+                        parameters: Some(self.parse_args()?),
+                        tn: self.parse_htn()?,
+                    }),
+                    token => {
+                        let error = SyntacticError {
+                            expected: "'(' afer keyword :parameters".to_string(),
+                            found: token.to_string(),
+                            position: self.tokenizer.get_last_token_position(),
+                        };
+                        Err(ParsingError::Syntactic(error))
                     }
                 }
-                Token::Keyword(KeywordName::Subtasks)
-                | Token::Keyword(KeywordName::OrderedSubtasks) => {
-                    return Ok(InitialTaskNetwork {
-                        parameters: None,
-                        tn: self.parse_htn()?,
-                    });
-                }
-                // empty init tn
-                Token::Punctuator(PunctuationType::RParentheses) => {
-                    return Ok(InitialTaskNetwork {
-                        parameters: None,
-                        tn: HTN {
-                            subtasks: vec![],
-                            ordering_pos: None,
-                            orderings: TaskOrdering::Partial(vec![]),
-                            constraints: None,
-                        },
-                    });
-                }
-                token => {
-                    let error = SyntacticError {
-                        expected: "expected the definition of the initial task network".to_string(),
-                        found: token.to_string(),
-                        position: self.tokenizer.get_last_token_position(),
-                    };
-                    return Err(ParsingError::Syntactic(error));
-                }
+            }
+            Token::Keyword(KeywordName::Subtasks)
+            | Token::Keyword(KeywordName::OrderedSubtasks) => Ok(InitialTaskNetwork {
+                parameters: None,
+                tn: self.parse_htn()?,
+            }),
+            // empty init tn
+            Token::Punctuator(PunctuationType::RParentheses) => Ok(InitialTaskNetwork {
+                parameters: None,
+                tn: HTN {
+                    subtasks: vec![],
+                    ordering_pos: None,
+                    orderings: TaskOrdering::Partial(vec![]),
+                    constraints: None,
+                },
+            }),
+            token => {
+                let error = SyntacticError {
+                    expected: "expected the definition of the initial task network".to_string(),
+                    found: token.to_string(),
+                    position: self.tokenizer.get_last_token_position(),
+                };
+                Err(ParsingError::Syntactic(error))
             }
         }
     }
@@ -60,16 +52,13 @@ impl<'a> Parser<'a> {
         let mut constraints = None;
         let mut ordering_pos = None;
         // check if it is an empty task network
-        match self.tokenizer.lookahead()? {
-            Token::Punctuator(PunctuationType::RParentheses) => {
-                return Ok(HTN {
-                    subtasks,
-                    ordering_pos,
-                    orderings: TaskOrdering::Partial(orderings),
-                    constraints,
-                });
-            }
-            _ => {}
+        if let Token::Punctuator(PunctuationType::RParentheses) = self.tokenizer.lookahead()? {
+            return Ok(HTN {
+                subtasks,
+                ordering_pos,
+                orderings: TaskOrdering::Partial(orderings),
+                constraints,
+            });
         }
         match self.tokenizer.get_token()? {
             Token::Keyword(KeywordName::Subtasks) => {
@@ -86,8 +75,7 @@ impl<'a> Parser<'a> {
                                                 Token::Punctuator(
                                                     PunctuationType::LParentheses,
                                                 ) => {
-                                                    orderings
-                                                        .extend(self.parse_ordering()?.into_iter());
+                                                    orderings.extend(self.parse_ordering()?);
                                                 }
                                                 Token::Punctuator(
                                                     PunctuationType::RParentheses,
@@ -198,28 +186,26 @@ impl<'a> Parser<'a> {
                 match self.tokenizer.get_token()? {
                     Token::Keyword(KeywordName::Constraints) => {
                         constraints = Some(self.parse_constraints()?);
-                        return Ok(HTN {
+                        Ok(HTN {
                             subtasks,
                             ordering_pos,
                             orderings: TaskOrdering::Total,
                             constraints,
-                        });
+                        })
                     }
-                    Token::Punctuator(PunctuationType::RParentheses) => {
-                        return Ok(HTN {
-                            subtasks,
-                            ordering_pos,
-                            orderings: TaskOrdering::Total,
-                            constraints,
-                        });
-                    }
+                    Token::Punctuator(PunctuationType::RParentheses) => Ok(HTN {
+                        subtasks,
+                        ordering_pos,
+                        orderings: TaskOrdering::Total,
+                        constraints,
+                    }),
                     token => {
                         let error = SyntacticError {
                             expected: "closing ')' after task network definition".to_string(),
                             found: token.to_string(),
                             position: self.tokenizer.get_last_token_position(),
                         };
-                        return Err(ParsingError::Syntactic(error));
+                        Err(ParsingError::Syntactic(error))
                     }
                 }
             }
@@ -229,7 +215,7 @@ impl<'a> Parser<'a> {
                     found: token.to_string(),
                     position: self.tokenizer.get_last_token_position(),
                 };
-                return Err(ParsingError::Syntactic(error));
+                Err(ParsingError::Syntactic(error))
             }
         }
     }
@@ -264,7 +250,7 @@ impl<'a> Parser<'a> {
                         found: token.to_string(),
                         position: self.tokenizer.get_last_token_position(),
                     };
-                    return Err(ParsingError::Syntactic(error));
+                    Err(ParsingError::Syntactic(error))
                 }
             },
             token => {
@@ -273,7 +259,7 @@ impl<'a> Parser<'a> {
                     found: token.to_string(),
                     position: self.tokenizer.get_last_token_position(),
                 };
-                return Err(ParsingError::Syntactic(error));
+                Err(ParsingError::Syntactic(error))
             }
         }
     }
@@ -306,14 +292,12 @@ impl<'a> Parser<'a> {
                         }
                     }
                     // one subtask
-                    Token::Identifier(_) => {
-                        return Ok(vec![self.parse_subtask()?]);
-                    }
+                    Token::Identifier(_) => Ok(vec![self.parse_subtask()?]),
                     // no subtasks
                     Token::Punctuator(PunctuationType::RParentheses) => {
                         // consume ')'
                         let _ = self.tokenizer.get_token()?;
-                        return Ok(vec![]);
+                        Ok(vec![])
                     }
                     token => {
                         let error = SyntacticError {
@@ -321,7 +305,7 @@ impl<'a> Parser<'a> {
                             found: token.to_string(),
                             position: self.tokenizer.get_last_token_position(),
                         };
-                        return Err(ParsingError::Syntactic(error));
+                        Err(ParsingError::Syntactic(error))
                     }
                 }
             }
@@ -331,7 +315,7 @@ impl<'a> Parser<'a> {
                     found: token.to_string(),
                     position: self.tokenizer.get_last_token_position(),
                 };
-                return Err(ParsingError::Syntactic(error));
+                Err(ParsingError::Syntactic(error))
             }
         }
     }
@@ -371,7 +355,7 @@ impl<'a> Parser<'a> {
                                                     return Ok(Subtask {
                                                         id: Some(id_symbol),
                                                         task: task_symbol,
-                                                        terms: terms,
+                                                        terms,
                                                     });
                                                 }
                                                 token => {
@@ -408,7 +392,7 @@ impl<'a> Parser<'a> {
                                     found: token.to_string(),
                                     position: self.tokenizer.get_last_token_position(),
                                 };
-                                return Err(ParsingError::Syntactic(error));
+                                Err(ParsingError::Syntactic(error))
                             }
                         }
                     }
@@ -433,7 +417,7 @@ impl<'a> Parser<'a> {
                                     return Ok(Subtask {
                                         id: None,
                                         task: id_symbol,
-                                        terms: terms,
+                                        terms,
                                     })
                                 }
                                 token => {
@@ -448,20 +432,18 @@ impl<'a> Parser<'a> {
                             }
                         }
                     }
-                    Token::Punctuator(PunctuationType::RParentheses) => {
-                        return Ok(Subtask {
-                            id: None,
-                            task: id_symbol,
-                            terms: terms,
-                        })
-                    }
+                    Token::Punctuator(PunctuationType::RParentheses) => Ok(Subtask {
+                        id: None,
+                        task: id_symbol,
+                        terms,
+                    }),
                     token => {
                         let error = SyntacticError {
                             expected: "subtask definition".to_string(),
                             found: token.to_string(),
                             position: self.tokenizer.get_last_token_position(),
                         };
-                        return Err(ParsingError::Syntactic(error));
+                        Err(ParsingError::Syntactic(error))
                     }
                 }
             }
@@ -471,7 +453,7 @@ impl<'a> Parser<'a> {
                     found: token.to_string(),
                     position: self.tokenizer.get_last_token_position(),
                 };
-                return Err(ParsingError::Syntactic(error));
+                Err(ParsingError::Syntactic(error))
             }
         }
     }
@@ -484,10 +466,10 @@ impl<'a> Parser<'a> {
                     Token::Punctuator(PunctuationType::RParentheses) => {
                         // skip lookahead
                         let _ = self.tokenizer.get_token();
-                        return Ok(constraints);
+                        Ok(constraints)
                     }
                     // mutiple constrait declarations
-                    Token::Operator(OperationType::And) => loop {
+                    Token::Operator(OperationType::And) => {
                         // skip lookahead
                         let _ = self.tokenizer.get_token();
                         // parse each constraint
@@ -509,11 +491,11 @@ impl<'a> Parser<'a> {
                                 }
                             }
                         }
-                    },
+                    }
                     // single constraint declaration
                     Token::Operator(OperationType::Not) | Token::Operator(OperationType::Equal) => {
                         constraints.push(self.parse_constraint()?);
-                        return Ok(constraints);
+                        Ok(constraints)
                     }
                     token => {
                         let error = SyntacticError {
@@ -521,7 +503,7 @@ impl<'a> Parser<'a> {
                             found: token.to_string(),
                             position: self.tokenizer.get_last_token_position(),
                         };
-                        return Err(ParsingError::Syntactic(error));
+                        Err(ParsingError::Syntactic(error))
                     }
                 }
             }
@@ -531,7 +513,7 @@ impl<'a> Parser<'a> {
                     found: token.to_string(),
                     position: self.tokenizer.get_last_token_position(),
                 };
-                return Err(ParsingError::Syntactic(error));
+                Err(ParsingError::Syntactic(error))
             }
         }
     }
@@ -550,31 +532,29 @@ impl<'a> Parser<'a> {
                                                 match self.tokenizer.get_token()? {
                                                     Token::Punctuator(
                                                         PunctuationType::RParentheses,
-                                                    ) => {
-                                                        return Ok(Constraint::NotEqual(t1, t2));
-                                                    }
+                                                    ) => Ok(Constraint::NotEqual(t1, t2)),
                                                     token => {
                                                         let error = SyntacticError{
-                                                                    expected: format!(") to close the inequality constraint").to_string(),
+                                                                    expected: ") to close the inequality constraint".to_string().to_string(),
                                                                     found: token.to_string(),
                                                                     position: self.tokenizer.get_last_token_position(),
                                                                 };
-                                                        return Err(ParsingError::Syntactic(error));
+                                                        Err(ParsingError::Syntactic(error))
                                                     }
                                                 }
                                             }
                                             token => {
                                                 let error = SyntacticError {
-                                                    expected: format!(
+                                                    expected:
                                                         ") to close the inequality constraint"
-                                                    )
-                                                    .to_string(),
+                                                            .to_string()
+                                                            .to_string(),
                                                     found: token.to_string(),
                                                     position: self
                                                         .tokenizer
                                                         .get_last_token_position(),
                                                 };
-                                                return Err(ParsingError::Syntactic(error));
+                                                Err(ParsingError::Syntactic(error))
                                             }
                                         }
                                     }
@@ -585,7 +565,7 @@ impl<'a> Parser<'a> {
                                             found: token.to_string(),
                                             position: self.tokenizer.get_last_token_position(),
                                         };
-                                        return Err(ParsingError::Syntactic(error));
+                                        Err(ParsingError::Syntactic(error))
                                     }
                                 },
                                 token => {
@@ -594,7 +574,7 @@ impl<'a> Parser<'a> {
                                         found: token.to_string(),
                                         position: self.tokenizer.get_last_token_position(),
                                     };
-                                    return Err(ParsingError::Syntactic(error));
+                                    Err(ParsingError::Syntactic(error))
                                 }
                             }
                         }
@@ -604,7 +584,7 @@ impl<'a> Parser<'a> {
                                 found: token.to_string(),
                                 position: self.tokenizer.get_last_token_position(),
                             };
-                            return Err(ParsingError::Syntactic(error));
+                            Err(ParsingError::Syntactic(error))
                         }
                     }
                 }
@@ -614,22 +594,24 @@ impl<'a> Parser<'a> {
                         found: token.to_string(),
                         position: self.tokenizer.get_last_token_position(),
                     };
-                    return Err(ParsingError::Syntactic(error));
+                    Err(ParsingError::Syntactic(error))
                 }
             },
             Token::Operator(OperationType::Equal) => match self.tokenizer.get_token()? {
                 Token::Identifier(t1) => match self.tokenizer.get_token()? {
                     Token::Identifier(t2) => match self.tokenizer.get_token()? {
                         Token::Punctuator(PunctuationType::RParentheses) => {
-                            return Ok(Constraint::Equal(t1, t2));
+                            Ok(Constraint::Equal(t1, t2))
                         }
                         token => {
                             let error = SyntacticError {
-                                expected: format!(") to close the equality constraint").to_string(),
+                                expected: ") to close the equality constraint"
+                                    .to_string()
+                                    .to_string(),
                                 found: token.to_string(),
                                 position: self.tokenizer.get_last_token_position(),
                             };
-                            return Err(ParsingError::Syntactic(error));
+                            Err(ParsingError::Syntactic(error))
                         }
                     },
                     token => {
@@ -638,7 +620,7 @@ impl<'a> Parser<'a> {
                             found: token.to_string(),
                             position: self.tokenizer.get_last_token_position(),
                         };
-                        return Err(ParsingError::Syntactic(error));
+                        Err(ParsingError::Syntactic(error))
                     }
                 },
                 token => {
@@ -647,7 +629,7 @@ impl<'a> Parser<'a> {
                         found: token.to_string(),
                         position: self.tokenizer.get_last_token_position(),
                     };
-                    return Err(ParsingError::Syntactic(error));
+                    Err(ParsingError::Syntactic(error))
                 }
             },
             token => {
@@ -656,7 +638,7 @@ impl<'a> Parser<'a> {
                     found: token.to_string(),
                     position: self.tokenizer.get_last_token_position(),
                 };
-                return Err(ParsingError::Syntactic(error));
+                Err(ParsingError::Syntactic(error))
             }
         }
     }

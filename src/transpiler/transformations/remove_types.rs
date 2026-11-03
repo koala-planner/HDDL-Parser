@@ -236,15 +236,15 @@ impl<'a> Transpiler<'a> {
     fn constraint_atoms(
         constraints: Vec<(&'a str, &'a str)>,
         type_predicates: &HashMap<&'a str, &'a str>,
-    ) -> Vec<Box<Formula<'a>>> {
+    ) -> Vec<Formula<'a>> {
         constraints
             .into_iter()
             .map(|(var, t)| {
-                Box::new(Formula::Atom(Predicate::new(
+                Formula::Atom(Predicate::new(
                     type_predicates[t],
                     TokenPosition::default(),
                     vec![Symbol::new_untyped(var, TokenPosition::default())],
-                )))
+                ))
             })
             .collect()
     }
@@ -254,7 +254,12 @@ impl<'a> Transpiler<'a> {
         constraints: Vec<(&'a str, &'a str)>,
         type_predicates: &HashMap<&'a str, &'a str>,
     ) {
-        let conjuncts = Formula::And(Transpiler::constraint_atoms(constraints, type_predicates));
+        let conjuncts = Formula::And(
+            Transpiler::constraint_atoms(constraints, type_predicates)
+                .into_iter()
+                .map(Box::new)
+                .collect(),
+        );
         *precondition = Some(match precondition.take() {
             Some(prec) => prec.and(conjuncts),
             None => conjuncts,
@@ -288,8 +293,8 @@ impl<'a> Transpiler<'a> {
                 );
                 if !constraints.is_empty() {
                     let mut conjuncts = Transpiler::constraint_atoms(constraints, type_predicates);
-                    conjuncts.push(Box::new(std::mem::replace(&mut **body, Formula::Empty)));
-                    **body = Formula::And(conjuncts);
+                    conjuncts.push(std::mem::replace(&mut **body, Formula::Empty));
+                    **body = Formula::And(conjuncts.into_iter().map(Box::new).collect());
                 }
             }
             Formula::ForAll(vars, body) => {
@@ -301,8 +306,8 @@ impl<'a> Transpiler<'a> {
                 if !constraints.is_empty() {
                     let mut atoms = Transpiler::constraint_atoms(constraints, type_predicates);
                     let lhs = match atoms.len() {
-                        1 => atoms.pop().unwrap(),
-                        _ => Box::new(Formula::And(atoms)),
+                        1 => Box::new(atoms.pop().unwrap()),
+                        _ => Box::new(Formula::And(atoms.into_iter().map(Box::new).collect())),
                     };
                     let rhs = Box::new(std::mem::replace(&mut **body, Formula::Empty));
                     **body = Formula::Imply(lhs, rhs);

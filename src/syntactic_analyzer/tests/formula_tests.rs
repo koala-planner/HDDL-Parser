@@ -22,37 +22,34 @@ mod tests {
     #[test]
     pub fn conjunction_of_literals_test() {
         let formula = Formula::And(vec![atom("p_1"), Box::new(Formula::Not(atom("p_2")))]);
-        assert_eq!(formula.is_simple_conjunction(), true);
+        assert!(formula.is_simple_conjunction());
     }
 
     #[test]
     pub fn bare_literal_conjunction_test() {
-        assert_eq!(
-            Formula::Atom(Predicate::new_dummy("p_1")).is_simple_conjunction(),
-            true
-        );
-        assert_eq!(Formula::Not(atom("p_1")).is_simple_conjunction(), true);
+        assert!(Formula::Atom(Predicate::new_dummy("p_1")).is_simple_conjunction());
+        assert!(Formula::Not(atom("p_1")).is_simple_conjunction());
     }
 
     #[test]
     pub fn vacuous_conjunction_test() {
-        assert_eq!(Formula::Empty.is_simple_conjunction(), true);
-        assert_eq!(Formula::And(vec![]).is_simple_conjunction(), true);
+        assert!(Formula::Empty.is_simple_conjunction());
+        assert!(Formula::And(vec![]).is_simple_conjunction());
     }
 
     #[test]
     pub fn disjunction_not_conjunction_test() {
         let disjunction = Formula::Or(vec![atom("p_1"), atom("p_2")]);
-        assert_eq!(disjunction.is_simple_conjunction(), false);
+        assert!(!disjunction.is_simple_conjunction());
         let conjoined_disjunction = Formula::And(vec![
             Box::new(Formula::Or(vec![atom("p_1"), atom("p_2")])),
             atom("p_3"),
         ]);
-        assert_eq!(conjoined_disjunction.is_simple_conjunction(), false);
+        assert!(!conjoined_disjunction.is_simple_conjunction());
         let xor = Formula::Xor(vec![atom("p_1"), atom("p_2")]);
-        assert_eq!(xor.is_simple_conjunction(), false);
+        assert!(!xor.is_simple_conjunction());
         let imply = Formula::Imply(atom("p_1"), atom("p_2"));
-        assert_eq!(imply.is_simple_conjunction(), false);
+        assert!(!imply.is_simple_conjunction());
     }
 
     #[test]
@@ -61,9 +58,9 @@ mod tests {
             Box::new(Formula::And(vec![atom("p_1"), atom("p_2")])),
             atom("p_3"),
         ]);
-        assert_eq!(nested.is_simple_conjunction(), false);
+        assert!(!nested.is_simple_conjunction());
         let double_negation = Formula::Not(Box::new(Formula::Not(atom("p_1"))));
-        assert_eq!(double_negation.is_simple_conjunction(), false);
+        assert!(!double_negation.is_simple_conjunction());
     }
 
     #[test]
@@ -72,16 +69,16 @@ mod tests {
             Box::new(Formula::Probabilistic(NumberType::Real(0.5), atom("p_1"))),
             Box::new(Formula::Probabilistic(NumberType::Real(0.5), atom("p_2"))),
         ]);
-        assert_eq!(probabilistic.is_simple_conjunction(), false);
+        assert!(!probabilistic.is_simple_conjunction());
     }
 
     #[test]
     pub fn quantified_not_conjunction_test() {
         let var = Symbol::new("x", TokenPosition { line: 0 }, None, None);
         let exists = Formula::Exists(vec![var.clone()], atom("p_1"));
-        assert_eq!(exists.is_simple_conjunction(), false);
+        assert!(!exists.is_simple_conjunction());
         let for_all = Formula::ForAll(vec![var], atom("p_1"));
-        assert_eq!(for_all.is_simple_conjunction(), false);
+        assert!(!for_all.is_simple_conjunction());
     }
 
     #[test]
@@ -106,16 +103,10 @@ mod tests {
             Ok(AbstractSyntaxTree::Domain(ast)) => {
                 assert_eq!(ast.actions.len(), 2);
                 let a_1 = &ast.actions[0];
-                assert_eq!(
-                    a_1.preconditions.as_ref().unwrap().is_simple_conjunction(),
-                    true
-                );
-                assert_eq!(a_1.effects.as_ref().unwrap().is_simple_conjunction(), true);
+                assert!(a_1.preconditions.as_ref().unwrap().is_simple_conjunction());
+                assert!(a_1.effects.as_ref().unwrap().is_simple_conjunction());
                 let a_2 = &ast.actions[1];
-                assert_eq!(
-                    a_2.preconditions.as_ref().unwrap().is_simple_conjunction(),
-                    false
-                );
+                assert!(!a_2.preconditions.as_ref().unwrap().is_simple_conjunction());
             }
             _ => panic!("parsing errors"),
         }

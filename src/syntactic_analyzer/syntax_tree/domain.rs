@@ -79,7 +79,7 @@ impl<'a> DomainAST<'a> {
 
 impl<'a> fmt::Display for DomainAST<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "(define (domain {})\n", self.name)?;
+        writeln!(f, "(define (domain {})", self.name)?;
         if !self.requirements.is_empty() {
             write!(
                 f,

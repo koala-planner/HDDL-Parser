@@ -223,12 +223,11 @@ pub fn inconsistent_arity_predicate_validation_test() {
     match HDDLProgram::from_hddl(&domain, None).and_then(|program| program.verify()) {
         Ok(_) => panic!("error not found"),
         Err(err) => {
-            if let hddl_analyzer::ParsingError::Semantic(x) = err {
-                if let SemanticErrorType::InconsistentPredicateArity(t) = x {
-                    assert_eq!(t.symbol, "at-segment");
-                } else {
-                    panic!()
-                }
+            if let hddl_analyzer::ParsingError::Semantic(
+                SemanticErrorType::InconsistentPredicateArity(t),
+            ) = err
+            {
+                assert_eq!(t.symbol, "at-segment");
             } else {
                 panic!()
             }
@@ -244,12 +243,11 @@ pub fn inconsistent_type_predicate_validation_test() {
     match HDDLProgram::from_hddl(&domain, None).and_then(|program| program.verify()) {
         Ok(_) => panic!("error not found"),
         Err(err) => {
-            if let hddl_analyzer::ParsingError::Semantic(x) = err {
-                if let SemanticErrorType::InconsistentPredicateArgType(t) = x {
-                    assert_eq!(t.var_name, "seg_pp_0_60");
-                } else {
-                    panic!()
-                }
+            if let hddl_analyzer::ParsingError::Semantic(
+                SemanticErrorType::InconsistentPredicateArgType(t),
+            ) = err
+            {
+                assert_eq!(t.var_name, "seg_pp_0_60");
             } else {
                 panic!()
             }
@@ -264,15 +262,14 @@ pub fn inconsistent_arity_task_validation_test() {
     match HDDLProgram::from_hddl(&domain, None).and_then(|program| program.verify()) {
         Ok(_) => panic!("error not found"),
         Err(err) => {
-            if let hddl_analyzer::ParsingError::Semantic(x) = err {
-                if let SemanticErrorType::InconsistentTaskArity(t) = x {
-                    assert_eq!(
-                        t.symbol,
-                        "move_seg_ppdoor_0_40_seg_tww1_0_200_north_south_medium"
-                    );
-                } else {
-                    panic!()
-                }
+            if let hddl_analyzer::ParsingError::Semantic(
+                SemanticErrorType::InconsistentTaskArity(t),
+            ) = err
+            {
+                assert_eq!(
+                    t.symbol,
+                    "move_seg_ppdoor_0_40_seg_tww1_0_200_north_south_medium"
+                );
             } else {
                 panic!()
             }
@@ -287,12 +284,11 @@ pub fn inconsistent_type_task_validation_test() {
     match HDDLProgram::from_hddl(&domain, None).and_then(|program| program.verify()) {
         Ok(_) => panic!("error not found"),
         Err(err) => {
-            if let hddl_analyzer::ParsingError::Semantic(x) = err {
-                if let SemanticErrorType::InconsistentTaskArgType(t) = x {
-                    assert_eq!(t.var_name, "?a_0");
-                } else {
-                    panic!()
-                }
+            if let hddl_analyzer::ParsingError::Semantic(
+                SemanticErrorType::InconsistentTaskArgType(t),
+            ) = err
+            {
+                assert_eq!(t.var_name, "?a_0");
             } else {
                 panic!()
             }
@@ -306,12 +302,10 @@ pub fn undeclared_method_param_validation_test() {
     match HDDLProgram::from_hddl(&domain, None).and_then(|program| program.verify()) {
         Ok(_) => panic!("error not found"),
         Err(err) => {
-            if let hddl_analyzer::ParsingError::Semantic(x) = err {
-                if let SemanticErrorType::UndefinedParameter(t) = x {
-                    assert_eq!(t.symbol, "?d");
-                } else {
-                    panic!()
-                }
+            if let hddl_analyzer::ParsingError::Semantic(SemanticErrorType::UndefinedParameter(t)) =
+                err
+            {
+                assert_eq!(t.symbol, "?d");
             } else {
                 panic!()
             }
@@ -325,12 +319,10 @@ pub fn undeclared_task_param_validation_test() {
     match HDDLProgram::from_hddl(&domain, None).and_then(|program| program.verify()) {
         Ok(_) => panic!("error not found"),
         Err(err) => {
-            if let hddl_analyzer::ParsingError::Semantic(x) = err {
-                if let SemanticErrorType::UndefinedParameter(t) = x {
-                    assert_eq!(t.symbol, "?s");
-                } else {
-                    panic!()
-                }
+            if let hddl_analyzer::ParsingError::Semantic(SemanticErrorType::UndefinedParameter(t)) =
+                err
+            {
+                assert_eq!(t.symbol, "?s");
             } else {
                 panic!()
             }
@@ -344,12 +336,10 @@ pub fn undeclared_predicate_validation_test() {
     match HDDLProgram::from_hddl(&domain, None).and_then(|program| program.verify()) {
         Ok(_) => panic!("error not found"),
         Err(err) => {
-            if let hddl_analyzer::ParsingError::Semantic(x) = err {
-                if let SemanticErrorType::UndefinedPredicate(t) = x {
-                    assert_eq!(t.symbol, "occupied");
-                } else {
-                    panic!()
-                }
+            if let hddl_analyzer::ParsingError::Semantic(SemanticErrorType::UndefinedPredicate(t)) =
+                err
+            {
+                assert_eq!(t.symbol, "occupied");
             } else {
                 panic!()
             }
@@ -363,12 +353,10 @@ pub fn undeclared_task_validation_test() {
     match HDDLProgram::from_hddl(&domain, None).and_then(|program| program.verify()) {
         Ok(_) => panic!("error not found"),
         Err(err) => {
-            if let hddl_analyzer::ParsingError::Semantic(x) = err {
-                if let SemanticErrorType::UndefinedSubtask(t) = x {
-                    assert_eq!(t.symbol, "undefined_task");
-                } else {
-                    panic!()
-                }
+            if let hddl_analyzer::ParsingError::Semantic(SemanticErrorType::UndefinedSubtask(t)) =
+                err
+            {
+                assert_eq!(t.symbol, "undefined_task");
             } else {
                 panic!()
             }
@@ -382,12 +370,9 @@ pub fn undeclared_type_validation_test() {
     match HDDLProgram::from_hddl(&domain, None).and_then(|program| program.verify()) {
         Ok(_) => panic!("error not found"),
         Err(err) => {
-            if let hddl_analyzer::ParsingError::Semantic(x) = err {
-                if let SemanticErrorType::UndefinedType(t) = x {
-                    assert_eq!(t.symbol, "airplane");
-                } else {
-                    panic!()
-                }
+            if let hddl_analyzer::ParsingError::Semantic(SemanticErrorType::UndefinedType(t)) = err
+            {
+                assert_eq!(t.symbol, "airplane");
             } else {
                 panic!()
             }

@@ -38,7 +38,7 @@ impl<'a> Parser<'a> {
                                                                 let precondition =
                                                                     self.parse_formula()?;
                                                                 let tn = self.parse_htn()?;
-                                                                return Ok(Method {
+                                                                Ok(Method {
                                                                     name,
                                                                     params,
                                                                     task,
@@ -47,7 +47,7 @@ impl<'a> Parser<'a> {
                                                                         precondition,
                                                                     ),
                                                                     tn,
-                                                                });
+                                                                })
                                                             }
                                                             Token::Keyword(
                                                                 KeywordName::Subtasks,
@@ -56,14 +56,14 @@ impl<'a> Parser<'a> {
                                                                 KeywordName::OrderedSubtasks,
                                                             ) => {
                                                                 let tn = self.parse_htn()?;
-                                                                return Ok(Method {
+                                                                Ok(Method {
                                                                     name,
                                                                     params,
                                                                     task,
                                                                     task_terms: terms,
                                                                     precondition: None,
                                                                     tn,
-                                                                });
+                                                                })
                                                             }
                                                             token => {
                                                                 let error = SyntacticError {
@@ -75,9 +75,7 @@ impl<'a> Parser<'a> {
                                                             found: token.to_string(),
                                                             position: self.tokenizer.get_last_token_position(),
                                                         };
-                                                                return Err(
-                                                                    ParsingError::Syntactic(error),
-                                                                );
+                                                                Err(ParsingError::Syntactic(error))
                                                             }
                                                         }
                                                     }
@@ -87,7 +85,7 @@ impl<'a> Parser<'a> {
                                                             found: token.to_string(),
                                                             position: self.tokenizer.get_last_token_position(),
                                                         };
-                                                        return Err(ParsingError::Syntactic(error));
+                                                        Err(ParsingError::Syntactic(error))
                                                     }
                                                 }
                                             }
@@ -99,7 +97,7 @@ impl<'a> Parser<'a> {
                                                         .tokenizer
                                                         .get_last_token_position(),
                                                 };
-                                                return Err(ParsingError::Syntactic(error));
+                                                Err(ParsingError::Syntactic(error))
                                             }
                                         }
                                     }
@@ -109,7 +107,7 @@ impl<'a> Parser<'a> {
                                             found: token.to_string(),
                                             position: self.tokenizer.get_last_token_position(),
                                         };
-                                        return Err(ParsingError::Syntactic(error));
+                                        Err(ParsingError::Syntactic(error))
                                     }
                                 }
                             }
@@ -119,7 +117,7 @@ impl<'a> Parser<'a> {
                                     found: token.to_string(),
                                     position: self.tokenizer.get_last_token_position(),
                                 };
-                                return Err(ParsingError::Syntactic(error));
+                                Err(ParsingError::Syntactic(error))
                             }
                         }
                     }
@@ -130,7 +128,7 @@ impl<'a> Parser<'a> {
                             found: token.to_string(),
                             position: self.tokenizer.get_last_token_position(),
                         };
-                        return Err(ParsingError::Syntactic(error));
+                        Err(ParsingError::Syntactic(error))
                     }
                 }
             }
@@ -140,7 +138,7 @@ impl<'a> Parser<'a> {
                     found: token.to_string(),
                     position: self.tokenizer.get_last_token_position(),
                 };
-                return Err(ParsingError::Syntactic(error));
+                Err(ParsingError::Syntactic(error))
             }
         }
     }

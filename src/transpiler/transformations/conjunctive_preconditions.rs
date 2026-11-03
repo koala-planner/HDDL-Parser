@@ -61,7 +61,7 @@ impl<'a> Transpiler<'a> {
             let needs_split = action
                 .preconditions
                 .as_ref()
-                .map_or(false, |precondition| !precondition.is_simple_conjunction());
+                .is_some_and(|precondition| !precondition.is_simple_conjunction());
             if !needs_split {
                 kept_actions.push(action);
                 continue;
@@ -130,7 +130,7 @@ impl<'a> Transpiler<'a> {
             let needs_split = method
                 .precondition
                 .as_ref()
-                .map_or(false, |precondition| !precondition.is_simple_conjunction());
+                .is_some_and(|precondition| !precondition.is_simple_conjunction());
             if !needs_split {
                 kept_methods.push(method);
                 continue;

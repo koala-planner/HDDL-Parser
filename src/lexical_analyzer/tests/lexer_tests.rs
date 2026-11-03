@@ -271,11 +271,8 @@ mod lexer_test {
         loop {
             let peek = lexer.lookahead();
             let actual = lexer.get_token();
-            match actual {
-                Ok(Token::EOF) => {
-                    break;
-                }
-                _ => {}
+            if let Ok(Token::EOF) = actual {
+                break;
             }
             assert_eq!(peek.unwrap(), actual.unwrap());
         }

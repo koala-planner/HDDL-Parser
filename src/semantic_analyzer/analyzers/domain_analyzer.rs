@@ -24,19 +24,16 @@ impl<'a> DomainSemanticAnalyzer<'a> {
             return Err(duplicate);
         }
         // Assert type hierarchy is acyclic
-        let _ = self.type_checker.verify_type_hierarchy()?;
+        self.type_checker.verify_type_hierarchy()?;
         let mut warnings = vec![];
         // Domain declarations
         let declared_predicates = self.verify_predicates()?;
         let declared_tasks = self.verify_compound_tasks()?;
         let mut declared_constants = HashSet::new();
-        match &self.domain.constants {
-            Some(constants) => {
-                for c in constants {
-                    declared_constants.insert(c);
-                }
+        if let Some(constants) = &self.domain.constants {
+            for c in constants {
+                declared_constants.insert(c);
             }
-            None => {}
         }
 
         // assert actions are correct
@@ -71,32 +68,26 @@ impl<'a> DomainSemanticAnalyzer<'a> {
                 }
             }
             // assert precondition predicates are declared
-            match &action.preconditions {
-                Some(precondition) => {
-                    check_predicate_declarations(precondition, &self.domain.predicates)?;
-                    let precond_predicates = precondition.get_propositional_predicates();
-                    self.type_checker.check_formula(
-                        &precond_predicates,
-                        &action.parameters,
-                        &declared_constants,
-                        &declared_predicates,
-                    )?;
-                }
-                _ => {}
+            if let Some(precondition) = &action.preconditions {
+                check_predicate_declarations(precondition, &self.domain.predicates)?;
+                let precond_predicates = precondition.get_propositional_predicates();
+                self.type_checker.check_formula(
+                    &precond_predicates,
+                    &action.parameters,
+                    &declared_constants,
+                    &declared_predicates,
+                )?;
             }
             // assert effect predicates are declared
-            match &action.effects {
-                Some(effect) => {
-                    check_predicate_declarations(effect, &self.domain.predicates)?;
-                    let eff_predicates = effect.get_propositional_predicates();
-                    self.type_checker.check_formula(
-                        &eff_predicates,
-                        &action.parameters,
-                        &declared_constants,
-                        &declared_predicates,
-                    )?;
-                }
-                _ => {}
+            if let Some(effect) = &action.effects {
+                check_predicate_declarations(effect, &self.domain.predicates)?;
+                let eff_predicates = effect.get_propositional_predicates();
+                self.type_checker.check_formula(
+                    &eff_predicates,
+                    &action.parameters,
+                    &declared_constants,
+                    &declared_predicates,
+                )?;
             }
         }
 
@@ -132,18 +123,15 @@ impl<'a> DomainSemanticAnalyzer<'a> {
                 }
             }
             // Assert preconditions are valid
-            match &method.precondition {
-                Some(precondition) => {
-                    check_predicate_declarations(precondition, &self.domain.predicates)?;
-                    let precond_predicates = precondition.get_propositional_predicates();
-                    self.type_checker.check_formula(
-                        &precond_predicates,
-                        &method.params,
-                        &declared_constants,
-                        &declared_predicates,
-                    )?;
-                }
-                _ => {}
+            if let Some(precondition) = &method.precondition {
+                check_predicate_declarations(precondition, &self.domain.predicates)?;
+                let precond_predicates = precondition.get_propositional_predicates();
+                self.type_checker.check_formula(
+                    &precond_predicates,
+                    &method.params,
+                    &declared_constants,
+                    &declared_predicates,
+                )?;
             }
             // Assert task is defined
             if !declared_tasks.contains(method.task.name) {
@@ -170,7 +158,7 @@ impl<'a> DomainSemanticAnalyzer<'a> {
             }
 
             // Assert task type is consistent
-            let _ = self.type_checker.is_task_consistent(
+            self.type_checker.is_task_consistent(
                 &method.task,
                 &method.task_terms,
                 &method.params,
@@ -181,7 +169,7 @@ impl<'a> DomainSemanticAnalyzer<'a> {
 
             // Assert subtask types are consistent
             for subtask in method.tn.subtasks.iter() {
-                let _ = self.type_checker.is_task_consistent(
+                self.type_checker.is_task_consistent(
                     &subtask.task,
                     &subtask.terms,
                     &method.params,
@@ -198,13 +186,13 @@ impl<'a> DomainSemanticAnalyzer<'a> {
             }
         }
         // Check whether all compound tasks can be refined to primitive ones
-        let tdg = TDG::new(self.domain);
+        let tdg = Tdg::new(self.domain);
         for task in declared_tasks.iter() {
-            let reachables = tdg.reachable(&task.name);
+            let reachables = tdg.reachable(task.name);
             // Preserve compound reachability as part of the computed result even
             // though this warning only depends on primitive reachability.
             let _ = reachables.compounds.len();
-            if (reachables.primitives.len() == 0) && (reachables.nullable == false) {
+            if (reachables.primitives.is_empty()) && (!reachables.nullable) {
                 warnings.push(WarningType::NoPrimitiveRefinement(WarningInfo {
                     symbol: task.name.to_string(),
                     position: task.name_pos,
@@ -213,12 +201,12 @@ impl<'a> DomainSemanticAnalyzer<'a> {
         }
         let type_hierarchy = self.type_checker.get_type_hierarchy();
         Ok(SymbolTable {
-            warnings: warnings,
+            warnings,
             constants: declared_constants,
             predicates: declared_predicates,
             tasks: declared_tasks,
             actions: declared_actions,
-            type_hierarchy: type_hierarchy,
+            type_hierarchy,
         })
     }
 

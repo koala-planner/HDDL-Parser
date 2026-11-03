@@ -62,8 +62,8 @@ impl<'a> Parser<'a> {
             name: task.name,
             name_pos: task.name_pos,
             parameters: task.parameters,
-            preconditions: preconditions,
-            effects: effects,
+            preconditions,
+            effects,
         })
     }
 }

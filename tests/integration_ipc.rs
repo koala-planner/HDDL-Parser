@@ -10,8 +10,7 @@ pub fn ipc_validation_test() {
         let path = folder.as_ref().unwrap().path();
         let domain_path = fs::read_dir(path.clone())
             .unwrap()
-            .filter(|x| x.as_ref().unwrap().file_name() == "domain.hddl")
-            .next()
+            .find(|x| x.as_ref().unwrap().file_name() == "domain.hddl")
             .as_ref()
             .unwrap()
             .as_ref()
@@ -24,17 +23,14 @@ pub fn ipc_validation_test() {
             } else {
                 let problem_path = file.as_ref().unwrap().path();
                 let problem = fs::read(&problem_path).unwrap();
-                match HDDLProgram::from_hddl(&domain, Some(&problem))
+                if let Err(token) = HDDLProgram::from_hddl(&domain, Some(&problem))
                     .and_then(|program| program.verify())
                 {
-                    Err(token) => {
-                        let error = format!(
-                            "Domain: {:?} \nProblem:{:?}\nError: {:?}",
-                            domain_path, problem_path, token
-                        );
-                        panic!("{}", error)
-                    }
-                    Ok(_) => {}
+                    let error = format!(
+                        "Domain: {:?} \nProblem:{:?}\nError: {:?}",
+                        domain_path, problem_path, token
+                    );
+                    panic!("{}", error)
                 }
             }
         }

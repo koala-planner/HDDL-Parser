@@ -13,5 +13,5 @@ use undefined_elements::*;
 extern crate petgraph;
 
 pub use analyzers::*;
-pub use tdg::TDG;
+pub use tdg::Tdg;
 pub use type_checker::TypeChecker;

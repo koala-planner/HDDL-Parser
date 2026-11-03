@@ -44,7 +44,7 @@ pub fn diagnose_domain(content: &Vec<u8>) -> DocumentDiagnosticReportResult {
         RelatedFullDocumentDiagnosticReport {
             related_documents: None,
             full_document_diagnostic_report: FullDocumentDiagnosticReport {
-                items: items,
+                items,
                 result_id: None,
             },
         },
@@ -74,32 +74,29 @@ pub fn diagnose_problem(
     let domain_parser;
     let domain_verifier;
     let domain_ast;
-    match domain_content {
-        Some(content) => {
-            domain_lexer = LexicalAnalyzer::new(content);
-            domain_parser = Parser::new(domain_lexer);
-            match domain_parser.parse() {
-                Ok(d_ast) => {
-                    if let AbstractSyntaxTree::Domain(d) = d_ast {
-                        domain_ast = d;
-                        domain_verifier = DomainSemanticAnalyzer::new(&domain_ast);
-                        match domain_verifier.verify_domain() {
-                            Ok(symbols) => {
-                                symbol_table = Some(symbols);
-                                // TODO: add warnings
-                            }
-                            Err(semantic_error) => {
-                                items.push(ParsingError::Semantic(semantic_error).into());
-                            }
+    if let Some(content) = domain_content {
+        domain_lexer = LexicalAnalyzer::new(content);
+        domain_parser = Parser::new(domain_lexer);
+        match domain_parser.parse() {
+            Ok(d_ast) => {
+                if let AbstractSyntaxTree::Domain(d) = d_ast {
+                    domain_ast = d;
+                    domain_verifier = DomainSemanticAnalyzer::new(&domain_ast);
+                    match domain_verifier.verify_domain() {
+                        Ok(symbols) => {
+                            symbol_table = Some(symbols);
+                            // TODO: add warnings
+                        }
+                        Err(semantic_error) => {
+                            items.push(ParsingError::Semantic(semantic_error).into());
                         }
                     }
                 }
-                Err(parsing_error) => {
-                    items.push(parsing_error.into());
-                }
+            }
+            Err(parsing_error) => {
+                items.push(parsing_error.into());
             }
         }
-        None => {}
     }
     let problem_lexer = LexicalAnalyzer::new(problem_content);
     match Parser::new(problem_lexer).parse() {
