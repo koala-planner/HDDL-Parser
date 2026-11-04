@@ -1,6 +1,7 @@
 use serde_json::{Value, json};
 use std::fs;
 use std::io::{self, Read, Write};
+use std::path::{Path, PathBuf};
 use std::process::{Child, ChildStdin, Command, Stdio};
 use std::sync::mpsc::{self, Receiver};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
@@ -153,13 +154,27 @@ fn read_lsp_message(reader: &mut impl Read) -> io::Result<Option<Value>> {
         .map_err(io::Error::other)
 }
 
+fn unique_temp_path(name: &str) -> PathBuf {
+    std::env::temp_dir().join(format!(
+        "hddl-parser-lsp-{name}-{}-{}",
+        std::process::id(),
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos()
+    ))
+}
+
+fn file_uri(path: &Path) -> String {
+    format!("file://{}", path.display())
+}
+
 #[test]
-fn lsp_initialize_current_behavior_reports_stale_server_version() {
+fn lsp_initialize_reports_package_version() {
     let mut server = LspProcess::start();
     let response = server.initialize();
 
-    assert_eq!(response["result"]["serverInfo"]["version"], "0.1.0");
-    assert_ne!(
+    assert_eq!(
         response["result"]["serverInfo"]["version"],
         env!("CARGO_PKG_VERSION")
     );
@@ -168,7 +183,7 @@ fn lsp_initialize_current_behavior_reports_stale_server_version() {
 }
 
 #[test]
-fn lsp_diagnostic_unsynced_document_current_behavior_returns_jsonrpc_error() {
+fn lsp_diagnostic_unsynced_document_returns_jsonrpc_error() {
     let mut server = LspProcess::start();
     server.initialize();
     server.notify("initialized", json!({}));
@@ -195,25 +210,13 @@ fn lsp_diagnostic_unsynced_document_current_behavior_returns_jsonrpc_error() {
 }
 
 #[test]
-fn lsp_diagnostic_problem_without_domain_current_behavior_returns_empty_report() {
+fn lsp_diagnostic_non_file_uri_returns_jsonrpc_error_without_panic() {
     let mut server = LspProcess::start();
     server.initialize();
     server.notify("initialized", json!({}));
 
-    let temp_dir = std::env::temp_dir().join(format!(
-        "hddl-parser-lsp-current-behavior-{}-{}",
-        std::process::id(),
-        SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_nanos()
-    ));
-    fs::create_dir_all(&temp_dir).unwrap();
-
-    let problem_path = temp_dir.join("p01.hddl");
+    let uri = "https://example.com/hddl-parser-current-behavior-problem.hddl";
     let problem_text = fs::read_to_string("tests/ipc/Blocksworld-GTOHP/p01.hddl").unwrap();
-    fs::write(&problem_path, &problem_text).unwrap();
-    let uri = format!("file://{}", problem_path.display());
 
     server.notify(
         "textDocument/didOpen",
@@ -229,6 +232,130 @@ fn lsp_diagnostic_problem_without_domain_current_behavior_returns_empty_report()
 
     let response = server.request(
         3,
+        "textDocument/diagnostic",
+        json!({
+            "textDocument": {
+                "uri": uri
+            }
+        }),
+    );
+
+    assert_eq!(response["error"]["code"], -32602);
+    assert!(
+        response["error"]["message"]
+            .as_str()
+            .unwrap()
+            .contains("diagnostic URI must be a file URI")
+    );
+
+    server.shutdown();
+}
+
+#[test]
+fn lsp_did_save_missing_file_keeps_server_alive_and_document_unsynced() {
+    let mut server = LspProcess::start();
+    server.initialize();
+    server.notify("initialized", json!({}));
+
+    let missing_path = unique_temp_path("missing-save").join("missing.hddl");
+    let uri = file_uri(&missing_path);
+
+    server.notify(
+        "textDocument/didSave",
+        json!({
+            "textDocument": {
+                "uri": uri
+            }
+        }),
+    );
+
+    let response = server.request(
+        4,
+        "textDocument/diagnostic",
+        json!({
+            "textDocument": {
+                "uri": uri
+            }
+        }),
+    );
+
+    assert_eq!(response["error"]["code"], -32602);
+    assert!(
+        response["error"]["message"]
+            .as_str()
+            .unwrap()
+            .contains("is not synced")
+    );
+
+    server.shutdown();
+}
+
+#[test]
+fn lsp_diagnostic_missing_sibling_directory_returns_empty_report() {
+    let mut server = LspProcess::start();
+    server.initialize();
+    server.notify("initialized", json!({}));
+
+    let problem_path = unique_temp_path("missing-sibling-directory").join("p01.hddl");
+    let uri = file_uri(&problem_path);
+    let problem_text = fs::read_to_string("tests/ipc/Blocksworld-GTOHP/p01.hddl").unwrap();
+
+    server.notify(
+        "textDocument/didOpen",
+        json!({
+            "textDocument": {
+                "uri": uri,
+                "languageId": "hddl",
+                "version": 1,
+                "text": problem_text
+            }
+        }),
+    );
+
+    let response = server.request(
+        5,
+        "textDocument/diagnostic",
+        json!({
+            "textDocument": {
+                "uri": uri
+            }
+        }),
+    );
+
+    assert_eq!(response["result"]["kind"], "full");
+    assert_eq!(response["result"]["items"].as_array().unwrap().len(), 0);
+
+    server.shutdown();
+}
+
+#[test]
+fn lsp_diagnostic_problem_without_domain_returns_empty_report() {
+    let mut server = LspProcess::start();
+    server.initialize();
+    server.notify("initialized", json!({}));
+
+    let temp_dir = unique_temp_path("problem-without-domain");
+    fs::create_dir_all(&temp_dir).unwrap();
+
+    let problem_path = temp_dir.join("p01.hddl");
+    let problem_text = fs::read_to_string("tests/ipc/Blocksworld-GTOHP/p01.hddl").unwrap();
+    fs::write(&problem_path, &problem_text).unwrap();
+    let uri = file_uri(&problem_path);
+
+    server.notify(
+        "textDocument/didOpen",
+        json!({
+            "textDocument": {
+                "uri": uri,
+                "languageId": "hddl",
+                "version": 1,
+                "text": problem_text
+            }
+        }),
+    );
+
+    let response = server.request(
+        6,
         "textDocument/diagnostic",
         json!({
             "textDocument": {
