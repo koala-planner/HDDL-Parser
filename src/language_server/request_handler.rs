@@ -1,7 +1,9 @@
 use std::collections::HashMap;
+use std::path::PathBuf;
 use std::sync::Arc;
 
 use tokio::sync::RwLock;
+use tower_lsp::jsonrpc;
 use tower_lsp::lsp_types::*;
 use tower_lsp::{Client, LanguageServer};
 
@@ -22,6 +24,132 @@ impl RequestHandler {
 
     async fn sync(&self, url: Url, content: Vec<u8>) {
         self.documents.write().await.insert(url, content);
+    }
+
+    async fn read_saved_document(&self, uri: &Url) -> Option<Vec<u8>> {
+        let file_path = match uri.to_file_path() {
+            Ok(file_path) => file_path,
+            Err(()) => {
+                self.client
+                    .log_message(
+                        MessageType::ERROR,
+                        format!("Could not read saved non-file URI {uri}"),
+                    )
+                    .await;
+                return None;
+            }
+        };
+
+        match tokio::fs::read(&file_path).await {
+            Ok(content) => Some(content),
+            Err(error) => {
+                self.client
+                    .log_message(
+                        MessageType::ERROR,
+                        format!(
+                            "Could not read saved document {}: {error}",
+                            file_path.display()
+                        ),
+                    )
+                    .await;
+                None
+            }
+        }
+    }
+
+    fn diagnostic_file_path(uri: &Url) -> jsonrpc::Result<PathBuf> {
+        uri.to_file_path().map_err(|()| {
+            jsonrpc::Error::invalid_params(format!("diagnostic URI must be a file URI: {uri}"))
+        })
+    }
+
+    async fn diagnose_problem_with_sibling_domain(
+        &self,
+        file_path: PathBuf,
+        document: &Vec<u8>,
+    ) -> DocumentDiagnosticReportResult {
+        let Some(root_folder) = file_path.parent() else {
+            return diagnose_problem(None, document);
+        };
+
+        let mut files = match tokio::fs::read_dir(root_folder).await {
+            Ok(files) => files,
+            Err(error) => {
+                self.client
+                    .log_message(
+                        MessageType::ERROR,
+                        format!(
+                            "Could not read sibling-domain directory {}: {error}",
+                            root_folder.display()
+                        ),
+                    )
+                    .await;
+                return diagnose_problem(None, document);
+            }
+        };
+
+        loop {
+            let entry = match files.next_entry().await {
+                Ok(Some(entry)) => entry,
+                Ok(None) => break,
+                Err(error) => {
+                    self.client
+                        .log_message(
+                            MessageType::ERROR,
+                            format!(
+                                "Could not continue sibling-domain discovery in {}: {error}",
+                                root_folder.display()
+                            ),
+                        )
+                        .await;
+                    break;
+                }
+            };
+
+            match entry.path().extension() {
+                Some(extension) if extension == "hddl" || extension == "pddl" => {
+                    let entry_path = entry.path();
+                    let content = match tokio::fs::read(&entry_path).await {
+                        Ok(content) => content,
+                        Err(error) => {
+                            self.client
+                                .log_message(
+                                    MessageType::ERROR,
+                                    format!(
+                                        "Could not read sibling-domain candidate {}: {error}",
+                                        entry_path.display()
+                                    ),
+                                )
+                                .await;
+                            continue;
+                        }
+                    };
+
+                    if let FileVariant::Domain = classify_file(&content) {
+                        self.client
+                            .log_message(
+                                MessageType::LOG,
+                                format!(
+                                    "{} is the domain for the diagnostic request. Attempting to diagnose.",
+                                    entry_path.display()
+                                ),
+                            )
+                            .await;
+                        return diagnose_problem(Some(&content), document);
+                    }
+                }
+                // File is not .PDDL or .HDDL
+                _ => {}
+            }
+        }
+
+        self.client
+            .log_message(
+                MessageType::LOG,
+                format!("Could not find the domain in {}", root_folder.display()),
+            )
+            .await;
+        diagnose_problem(None, document)
     }
 }
 
@@ -49,7 +177,7 @@ impl LanguageServer for RequestHandler {
             },
             server_info: Some(ServerInfo {
                 name: "HDDL Server".to_string(),
-                version: Some("0.1.0".to_string()),
+                version: Some(env!("CARGO_PKG_VERSION").to_string()),
             }),
         })
     }
@@ -72,9 +200,10 @@ impl LanguageServer for RequestHandler {
         // get the saved file content
         let text = match params.text {
             Some(content) => content.into_bytes(),
-            None => tokio::fs::read(params.text_document.uri.path())
-                .await
-                .unwrap(),
+            None => match self.read_saved_document(&params.text_document.uri).await {
+                Some(content) => content,
+                None => return,
+            },
         };
         // sync the file
         self.sync(params.text_document.uri, text).await;
@@ -97,7 +226,7 @@ impl LanguageServer for RequestHandler {
                 self.client
                     .log_message(MessageType::LOG, "Diagnostic Request Recieved.")
                     .await;
-                let file_path = params.text_document.uri.to_file_path().unwrap();
+                let file_path = Self::diagnostic_file_path(&params.text_document.uri)?;
                 match classify_file(document) {
                     FileVariant::Domain => {
                         self.client
@@ -113,41 +242,9 @@ impl LanguageServer for RequestHandler {
                         return Ok(diagnosis);
                     }
                     FileVariant::Problem => {
-                        let root_folder = file_path.parent().unwrap();
-                        let mut files = tokio::fs::read_dir(root_folder).await.unwrap();
-                        while let Ok(Some(entry)) = files.next_entry().await {
-                            match entry.path().extension() {
-                                Some(extension) if (extension == "hddl" || extension == "pddl") => {
-                                    let content = tokio::fs::read(entry.path()).await.unwrap();
-                                    if let FileVariant::Domain = classify_file(&content) {
-                                        self.client
-                                            .log_message(
-                                                MessageType::LOG,
-                                                format!(
-                                                    "{} is the domain for {}. Attempting to diagnose.",
-                                                    root_folder.to_str().unwrap(),
-                                                    params.text_document.uri
-                                                ),
-                                            )
-                                            .await;
-                                        return Ok(diagnose_problem(Some(&content), document));
-                                    }
-                                }
-                                // File is not .PDDL or .HDDL
-                                _ => {}
-                            }
-                        }
-                        // could not find the domain
-                        self.client
-                            .log_message(
-                                MessageType::LOG,
-                                format!(
-                                    "Could not find the domain in {}",
-                                    root_folder.to_str().unwrap()
-                                ),
-                            )
-                            .await;
-                        return Ok(diagnose_problem(None, document));
+                        return Ok(self
+                            .diagnose_problem_with_sibling_domain(file_path, document)
+                            .await);
                     }
                     FileVariant::MaybeNotHDDL => {
                         // TODO: attempt to fix this

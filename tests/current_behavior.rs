@@ -1,4 +1,4 @@
-use hddl_analyzer::{HDDLProgram, Transformation, Transpiler};
+use hddl_analyzer::{HDDLProgram, ParsingError, Transformation, Transpiler};
 use std::fs;
 use std::process::{Command, Output};
 
@@ -14,6 +14,13 @@ fn output_text(output: &Output) -> (String, String) {
         String::from_utf8_lossy(&output.stdout).into_owned(),
         String::from_utf8_lossy(&output.stderr).into_owned(),
     )
+}
+
+fn expect_parsing_error<T>(result: Result<T, ParsingError>) -> ParsingError {
+    match result {
+        Ok(_) => panic!("expected ParsingError"),
+        Err(error) => error,
+    }
 }
 
 #[test]
@@ -74,58 +81,58 @@ fn cli_known_good_verification_exits_zero_and_prints_success_to_stdout() {
 }
 
 #[test]
-fn hddl_program_domain_as_problem_current_behavior_panics() {
+fn hddl_program_domain_as_problem_returns_error() {
     let domain = fs::read("tests/ipc/Blocksworld-GTOHP/domain.hddl").unwrap();
 
-    let result = std::panic::catch_unwind(|| {
-        let _ = HDDLProgram::from_hddl(&domain, Some(&domain));
-    });
+    let error = expect_parsing_error(HDDLProgram::from_hddl(&domain, Some(&domain)));
 
-    assert!(result.is_err());
+    assert!(error.to_string().contains("expected problem input"));
+    assert!(error.to_string().contains("found domain"));
 }
 
 #[test]
-fn hddl_program_problem_as_domain_current_behavior_panics() {
+fn hddl_program_problem_as_domain_returns_error() {
     let problem = fs::read("tests/ipc/Blocksworld-GTOHP/p01.hddl").unwrap();
 
-    let result = std::panic::catch_unwind(|| {
-        let _ = HDDLProgram::from_hddl(&problem, None);
-    });
+    let error = expect_parsing_error(HDDLProgram::from_hddl(&problem, None));
 
-    assert!(result.is_err());
+    assert!(error.to_string().contains("expected domain input"));
+    assert!(error.to_string().contains("found problem"));
 }
 
 #[test]
-fn transpiler_domain_as_problem_current_behavior_panics() {
+fn transpiler_domain_as_problem_returns_error() {
     let domain = fs::read("tests/ipc/Blocksworld-GTOHP/domain.hddl").unwrap();
 
-    let result = std::panic::catch_unwind(|| {
-        let _ = Transpiler::from_hddl(&domain, Some(&domain));
-    });
+    let error = expect_parsing_error(Transpiler::from_hddl(&domain, Some(&domain)));
 
-    assert!(result.is_err());
+    assert!(error.to_string().contains("expected problem input"));
+    assert!(error.to_string().contains("found domain"));
 }
 
 #[test]
-fn transpiler_problem_as_domain_current_behavior_panics() {
+fn transpiler_problem_as_domain_returns_error() {
     let problem = fs::read("tests/ipc/Blocksworld-GTOHP/p01.hddl").unwrap();
 
-    let result = std::panic::catch_unwind(|| {
-        let _ = Transpiler::from_hddl(&problem, None);
-    });
+    let error = expect_parsing_error(Transpiler::from_hddl(&problem, None));
 
-    assert!(result.is_err());
+    assert!(error.to_string().contains("expected domain input"));
+    assert!(error.to_string().contains("found problem"));
 }
 
 #[test]
-fn remove_equality_constraints_domain_only_current_behavior_panics() {
+fn remove_equality_constraints_domain_only_returns_error() {
     let domain = fs::read("tests/ipc/Blocksworld-GTOHP/domain.hddl").unwrap();
 
-    let result = std::panic::catch_unwind(|| {
-        let _ = Transpiler::from_hddl(&domain, None)
+    let error = expect_parsing_error(
+        Transpiler::from_hddl(&domain, None)
             .unwrap()
-            .transform(Transformation::RemoveEqualityConstraints);
-    });
+            .transform(Transformation::RemoveEqualityConstraints),
+    );
 
-    assert!(result.is_err());
+    assert!(
+        error
+            .to_string()
+            .contains("remove-equality-constraints requires a problem input")
+    );
 }
