@@ -2,6 +2,7 @@
 /Robinson
 .vscode/*
 *.lock
+!Cargo.lock
 .claude/*
 .worktrees
 workbench
