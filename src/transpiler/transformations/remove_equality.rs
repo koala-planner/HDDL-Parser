@@ -30,7 +30,7 @@ fn remove_equality_constraints<'a>(program: &mut HDDLProgram<'a>) {
             replace_equals(precondition, PRED_NAME);
         }
         if let Some(effect) = &mut action.effects {
-            replace_equals(effect, PRED_NAME);
+            replace_effect_equals(effect, PRED_NAME);
         }
     }
     for method in program.domain.methods.iter_mut() {
@@ -39,20 +39,22 @@ fn remove_equality_constraints<'a>(program: &mut HDDLProgram<'a>) {
         }
         // task-network constraints become precondition literals
         if let Some(constraints) = method.tn.constraints.take() {
-            let literals: Vec<Formula<'a>> = constraints
+            let literals: Vec<Precondition<'a>> = constraints
                 .into_iter()
                 .map(|constraint| match constraint {
-                    Constraint::Equal(lhs, rhs) => equal_atom(PRED_NAME, lhs, rhs),
-                    Constraint::NotEqual(lhs, rhs) => {
-                        Formula::Not(Box::new(equal_atom(PRED_NAME, lhs, rhs)))
+                    Constraint::Equal(lhs, rhs) => {
+                        Precondition::Atom(equal_predicate(PRED_NAME, lhs, rhs))
                     }
+                    Constraint::NotEqual(lhs, rhs) => Precondition::Not(Box::new(
+                        Precondition::Atom(equal_predicate(PRED_NAME, lhs, rhs)),
+                    )),
                 })
                 .collect();
             if !literals.is_empty() {
                 let addition = if literals.len() == 1 {
                     literals.into_iter().next().unwrap()
                 } else {
-                    Formula::And(literals.into_iter().map(Box::new).collect())
+                    Precondition::And(literals.into_iter().map(Box::new).collect())
                 };
                 method.precondition = Some(match method.precondition.take() {
                     Some(precondition) => precondition.and(addition),
@@ -76,34 +78,58 @@ fn remove_equality_constraints<'a>(program: &mut HDDLProgram<'a>) {
     problem.extend_init_state(facts.collect());
 }
 
-fn equal_atom<'a>(name: &'a str, lhs: &'a str, rhs: &'a str) -> Formula<'a> {
-    Formula::Atom(Predicate::new(
+// the predicate standing in for (= lhs rhs)
+fn equal_predicate<'a>(name: &'a str, lhs: &'a str, rhs: &'a str) -> Predicate<'a> {
+    Predicate::new(
         name,
         TokenPosition::default(),
         vec![
             Symbol::new_untyped(lhs, TokenPosition::default()),
             Symbol::new_untyped(rhs, TokenPosition::default()),
         ],
-    ))
+    )
 }
 
-fn replace_equals<'a>(formula: &mut Formula<'a>, name: &'a str) {
+fn replace_equals<'a>(formula: &mut Precondition<'a>, name: &'a str) {
     match formula {
-        Formula::Equals(lhs, rhs) => {
+        Precondition::Equals(lhs, rhs) => {
             let (lhs, rhs) = (*lhs, *rhs);
-            *formula = equal_atom(name, lhs, rhs);
+            *formula = Precondition::Atom(equal_predicate(name, lhs, rhs));
         }
-        Formula::Empty | Formula::Atom(_) => {}
-        Formula::Not(inner) | Formula::Probabilistic(_, inner) => replace_equals(inner, name),
-        Formula::And(terms) | Formula::Or(terms) | Formula::Xor(terms) => {
+        Precondition::Empty | Precondition::Atom(_) => {}
+        Precondition::Not(inner) => replace_equals(inner, name),
+        Precondition::And(terms) | Precondition::Or(terms) | Precondition::Xor(terms) => {
             for term in terms.iter_mut() {
                 replace_equals(term, name);
             }
         }
-        Formula::Imply(lhs, rhs) => {
+        Precondition::Imply(lhs, rhs) => {
             replace_equals(lhs, name);
             replace_equals(rhs, name);
         }
-        Formula::Exists(_, body) | Formula::ForAll(_, body) => replace_equals(body, name),
+        Precondition::Exists(_, body) | Precondition::ForAll(_, body) => replace_equals(body, name),
+    }
+}
+
+fn replace_effect_equals<'a>(effect: &mut Effect<'a>, name: &'a str) {
+    match effect {
+        Effect::Equals(lhs, rhs) => {
+            let (lhs, rhs) = (*lhs, *rhs);
+            *effect = Effect::Atom(equal_predicate(name, lhs, rhs));
+        }
+        Effect::Empty | Effect::Atom(_) => {}
+        Effect::Not(inner)
+        | Effect::Probabilistic(_, inner)
+        | Effect::Exists(_, inner)
+        | Effect::ForAll(_, inner) => replace_effect_equals(inner, name),
+        Effect::And(terms) | Effect::Or(terms) | Effect::Xor(terms) => {
+            for term in terms.iter_mut() {
+                replace_effect_equals(term, name);
+            }
+        }
+        Effect::Imply(lhs, rhs) => {
+            replace_effect_equals(lhs, name);
+            replace_effect_equals(rhs, name);
+        }
     }
 }

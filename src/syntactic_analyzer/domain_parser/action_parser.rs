@@ -10,7 +10,7 @@ impl<'a> Parser<'a> {
             Token::Keyword(KeywordName::Precondition) => {
                 // skip precondition keyword
                 let _ = self.tokenizer.get_token();
-                preconditions = Some(self.parse_formula()?);
+                preconditions = Some(self.parse_precondition()?);
             }
             // the action has no precondition
             Token::Keyword(KeywordName::Effect)
@@ -31,8 +31,8 @@ impl<'a> Parser<'a> {
             Token::Keyword(KeywordName::Effect) => {
                 // skip effects keyword
                 let _ = self.tokenizer.get_token();
-                let formula = self.parse_formula()?;
-                effects = Some(formula);
+                let effect = self.parse_effect()?;
+                effects = Some(effect);
             }
             // action has no effects
             Token::Punctuator(PunctuationType::RParentheses) => {}

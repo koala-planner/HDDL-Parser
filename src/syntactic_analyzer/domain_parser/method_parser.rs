@@ -36,7 +36,7 @@ impl<'a> Parser<'a> {
                                                                 // skip "precondition" keyword
                                                                 let _ = self.tokenizer.get_token();
                                                                 let precondition =
-                                                                    self.parse_formula()?;
+                                                                    self.parse_precondition()?;
                                                                 let tn = self.parse_htn()?;
                                                                 Ok(Method {
                                                                     name,

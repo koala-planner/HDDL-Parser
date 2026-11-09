@@ -101,8 +101,8 @@ impl<'a> Transpiler<'a> {
     // recompute the requirement flags from the actual content
     pub(crate) fn refresh_requirements(&mut self) {
         let program = &mut self.program;
-        let mut preconditions: Vec<&Formula> = vec![];
-        let mut effects: Vec<&Formula> = vec![];
+        let mut preconditions: Vec<&Precondition> = vec![];
+        let mut effects: Vec<&Effect> = vec![];
         for action in program.domain.actions.iter() {
             preconditions.extend(action.preconditions.iter());
             effects.extend(action.effects.iter());
@@ -112,15 +112,15 @@ impl<'a> Transpiler<'a> {
         }
         preconditions.extend(program.problem.iter().flat_map(|p| p.goal.iter()));
 
-        let has_forall = preconditions
-            .iter()
-            .any(|formula| formula.any_subformula(&mut |f| matches!(f, Formula::ForAll(_, _))));
-        let has_exists = preconditions
-            .iter()
-            .any(|formula| formula.any_subformula(&mut |f| matches!(f, Formula::Exists(_, _))));
+        let has_forall = preconditions.iter().any(|formula| {
+            formula.any_subformula(&mut |f| matches!(f, Precondition::ForAll(_, _)))
+        });
+        let has_exists = preconditions.iter().any(|formula| {
+            formula.any_subformula(&mut |f| matches!(f, Precondition::Exists(_, _)))
+        });
         let has_negative = preconditions
             .iter()
-            .any(|formula| formula.any_subformula(&mut |f| matches!(f, Formula::Not(_))));
+            .any(|formula| formula.any_subformula(&mut |f| matches!(f, Precondition::Not(_))));
         let has_constraints = program
             .domain
             .methods
@@ -135,10 +135,12 @@ impl<'a> Transpiler<'a> {
             )
             .any(|constraints| !constraints.is_empty());
         let has_equality = has_constraints
-            || preconditions
+            || preconditions.iter().any(|formula| {
+                formula.any_subformula(&mut |f| matches!(f, Precondition::Equals(_, _)))
+            })
+            || effects
                 .iter()
-                .chain(effects.iter())
-                .any(|formula| formula.any_subformula(&mut |f| matches!(f, Formula::Equals(_, _))));
+                .any(|effect| effect.any_subformula(&mut |f| matches!(f, Effect::Equals(_, _))));
         drop(preconditions);
         drop(effects);
 

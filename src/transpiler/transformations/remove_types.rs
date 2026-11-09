@@ -86,7 +86,7 @@ impl<'a> Transpiler<'a> {
                 Transpiler::untype_formula(precondition, &checker, &type_predicates);
             }
             if let Some(effect) = &mut action.effects {
-                Transpiler::untype_formula(effect, &checker, &type_predicates);
+                Transpiler::untype_effect(effect, &checker, &type_predicates);
             }
             let constraints = Transpiler::collect_param_constraints(&mut action.parameters);
             Transpiler::apply_constraints(
@@ -235,31 +235,32 @@ impl<'a> Transpiler<'a> {
         kept
     }
 
-    fn constraint_atoms(
+    // the type predicate applications asserting the constraints
+    fn constraint_predicates(
         constraints: Vec<(&'a str, &'a str)>,
         type_predicates: &HashMap<&'a str, &'a str>,
-    ) -> Vec<Formula<'a>> {
+    ) -> Vec<Predicate<'a>> {
         constraints
             .into_iter()
             .map(|(var, t)| {
-                Formula::Atom(Predicate::new(
+                Predicate::new(
                     type_predicates[t],
                     TokenPosition::default(),
                     vec![Symbol::new_untyped(var, TokenPosition::default())],
-                ))
+                )
             })
             .collect()
     }
 
     fn apply_constraints(
-        precondition: &mut Option<Formula<'a>>,
+        precondition: &mut Option<Precondition<'a>>,
         constraints: Vec<(&'a str, &'a str)>,
         type_predicates: &HashMap<&'a str, &'a str>,
     ) {
-        let conjuncts = Formula::And(
-            Transpiler::constraint_atoms(constraints, type_predicates)
+        let conjuncts = Precondition::And(
+            Transpiler::constraint_predicates(constraints, type_predicates)
                 .into_iter()
-                .map(Box::new)
+                .map(|predicate| Box::new(Precondition::Atom(predicate)))
                 .collect(),
         );
         *precondition = Some(match precondition.take() {
@@ -269,50 +270,115 @@ impl<'a> Transpiler<'a> {
     }
 
     fn untype_formula(
-        formula: &mut Formula<'a>,
+        formula: &mut Precondition<'a>,
         checker: &TypeChecker<'a>,
         type_predicates: &HashMap<&'a str, &'a str>,
     ) {
         match formula {
-            Formula::Empty | Formula::Atom(_) | Formula::Equals(_, _) => {}
-            Formula::Not(inner) | Formula::Probabilistic(_, inner) => {
-                Transpiler::untype_formula(inner, checker, type_predicates)
-            }
-            Formula::And(terms) | Formula::Or(terms) | Formula::Xor(terms) => {
+            Precondition::Empty | Precondition::Atom(_) | Precondition::Equals(_, _) => {}
+            Precondition::Not(inner) => Transpiler::untype_formula(inner, checker, type_predicates),
+            Precondition::And(terms) | Precondition::Or(terms) | Precondition::Xor(terms) => {
                 for term in terms.iter_mut() {
                     Transpiler::untype_formula(term, checker, type_predicates);
                 }
             }
-            Formula::Imply(lhs, rhs) => {
+            Precondition::Imply(lhs, rhs) => {
                 Transpiler::untype_formula(lhs, checker, type_predicates);
                 Transpiler::untype_formula(rhs, checker, type_predicates);
             }
-            Formula::Exists(vars, body) => {
+            Precondition::Exists(vars, body) => {
                 Transpiler::untype_formula(body, checker, type_predicates);
                 let constraints = Transpiler::minimize_constraints(
                     Transpiler::collect_param_constraints(vars),
                     checker,
                 );
                 if !constraints.is_empty() {
-                    let mut conjuncts = Transpiler::constraint_atoms(constraints, type_predicates);
-                    conjuncts.push(std::mem::replace(&mut **body, Formula::Empty));
-                    **body = Formula::And(conjuncts.into_iter().map(Box::new).collect());
+                    let mut conjuncts: Vec<Precondition<'a>> =
+                        Transpiler::constraint_predicates(constraints, type_predicates)
+                            .into_iter()
+                            .map(Precondition::Atom)
+                            .collect();
+                    conjuncts.push(std::mem::replace(&mut **body, Precondition::Empty));
+                    **body = Precondition::And(conjuncts.into_iter().map(Box::new).collect());
                 }
             }
-            Formula::ForAll(vars, body) => {
+            Precondition::ForAll(vars, body) => {
                 Transpiler::untype_formula(body, checker, type_predicates);
                 let constraints = Transpiler::minimize_constraints(
                     Transpiler::collect_param_constraints(vars),
                     checker,
                 );
                 if !constraints.is_empty() {
-                    let mut atoms = Transpiler::constraint_atoms(constraints, type_predicates);
+                    let mut atoms: Vec<Precondition<'a>> =
+                        Transpiler::constraint_predicates(constraints, type_predicates)
+                            .into_iter()
+                            .map(Precondition::Atom)
+                            .collect();
                     let lhs = match atoms.len() {
                         1 => Box::new(atoms.pop().unwrap()),
-                        _ => Box::new(Formula::And(atoms.into_iter().map(Box::new).collect())),
+                        _ => Box::new(Precondition::And(atoms.into_iter().map(Box::new).collect())),
                     };
-                    let rhs = Box::new(std::mem::replace(&mut **body, Formula::Empty));
-                    **body = Formula::Imply(lhs, rhs);
+                    let rhs = Box::new(std::mem::replace(&mut **body, Precondition::Empty));
+                    **body = Precondition::Imply(lhs, rhs);
+                }
+            }
+        }
+    }
+
+    // the effect counterpart of untype_formula
+    fn untype_effect(
+        effect: &mut Effect<'a>,
+        checker: &TypeChecker<'a>,
+        type_predicates: &HashMap<&'a str, &'a str>,
+    ) {
+        match effect {
+            Effect::Empty | Effect::Atom(_) | Effect::Equals(_, _) => {}
+            Effect::Not(inner) | Effect::Probabilistic(_, inner) => {
+                Transpiler::untype_effect(inner, checker, type_predicates)
+            }
+            Effect::And(terms) | Effect::Or(terms) | Effect::Xor(terms) => {
+                for term in terms.iter_mut() {
+                    Transpiler::untype_effect(term, checker, type_predicates);
+                }
+            }
+            Effect::Imply(lhs, rhs) => {
+                Transpiler::untype_effect(lhs, checker, type_predicates);
+                Transpiler::untype_effect(rhs, checker, type_predicates);
+            }
+            Effect::Exists(vars, body) => {
+                Transpiler::untype_effect(body, checker, type_predicates);
+                let constraints = Transpiler::minimize_constraints(
+                    Transpiler::collect_param_constraints(vars),
+                    checker,
+                );
+                if !constraints.is_empty() {
+                    let mut conjuncts: Vec<Effect<'a>> =
+                        Transpiler::constraint_predicates(constraints, type_predicates)
+                            .into_iter()
+                            .map(Effect::Atom)
+                            .collect();
+                    conjuncts.push(std::mem::replace(&mut **body, Effect::Empty));
+                    **body = Effect::And(conjuncts.into_iter().map(Box::new).collect());
+                }
+            }
+            Effect::ForAll(vars, body) => {
+                Transpiler::untype_effect(body, checker, type_predicates);
+                let constraints = Transpiler::minimize_constraints(
+                    Transpiler::collect_param_constraints(vars),
+                    checker,
+                );
+                if !constraints.is_empty() {
+                    let mut atoms: Vec<Effect<'a>> =
+                        Transpiler::constraint_predicates(constraints, type_predicates)
+                            .into_iter()
+                            .map(Effect::Atom)
+                            .collect();
+                    let lhs = match atoms.len() {
+                        1 => Box::new(atoms.pop().unwrap()),
+                        _ => Box::new(Effect::And(atoms.into_iter().map(Box::new).collect())),
+                    };
+                    let rhs = Box::new(std::mem::replace(&mut **body, Effect::Empty));
+                    **body = Effect::Imply(lhs, rhs);
                 }
             }
         }

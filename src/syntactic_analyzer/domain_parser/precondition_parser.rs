@@ -1,17 +1,17 @@
 use super::*;
 
 impl<'a> Parser<'a> {
-    pub fn parse_formula(&self) -> Result<Formula<'a>, ParsingError> {
+    pub fn parse_precondition(&self) -> Result<Precondition<'a>, ParsingError> {
         match self.tokenizer.get_token()? {
-            Token::Punctuator(PunctuationType::RParentheses) => Ok(Formula::Empty),
+            Token::Punctuator(PunctuationType::RParentheses) => Ok(Precondition::Empty),
             Token::Punctuator(PunctuationType::LParentheses) => {
                 match self.tokenizer.get_token()? {
                     // Not Operation
                     Token::Operator(OperationType::Not) => {
-                        let formula = self.parse_formula()?;
+                        let formula = self.parse_precondition()?;
                         match self.tokenizer.get_token()? {
                             Token::Punctuator(PunctuationType::RParentheses) => {
-                                Ok(Formula::Not(Box::new(formula)))
+                                Ok(Precondition::Not(Box::new(formula)))
                             }
                             token => {
                                 let error = SyntacticError {
@@ -27,9 +27,9 @@ impl<'a> Parser<'a> {
                     Token::Operator(OperationType::And) => {
                         let mut expressions = vec![];
                         loop {
-                            let formula = self.parse_formula()?;
-                            if let Formula::Empty = formula {
-                                return Ok(Formula::And(expressions));
+                            let formula = self.parse_precondition()?;
+                            if let Precondition::Empty = formula {
+                                return Ok(Precondition::And(expressions));
                             } else {
                                 expressions.push(Box::new(formula));
                             }
@@ -39,9 +39,9 @@ impl<'a> Parser<'a> {
                     Token::Operator(OperationType::Xor) => {
                         let mut expressions = vec![];
                         loop {
-                            let formula = self.parse_formula()?;
-                            if let Formula::Empty = formula {
-                                return Ok(Formula::Xor(expressions));
+                            let formula = self.parse_precondition()?;
+                            if let Precondition::Empty = formula {
+                                return Ok(Precondition::Xor(expressions));
                             } else {
                                 expressions.push(Box::new(formula));
                             }
@@ -51,9 +51,9 @@ impl<'a> Parser<'a> {
                     Token::Operator(OperationType::Or) => {
                         let mut expressions = vec![];
                         loop {
-                            let formula = self.parse_formula()?;
-                            if let Formula::Empty = formula {
-                                return Ok(Formula::Or(expressions));
+                            let formula = self.parse_precondition()?;
+                            if let Precondition::Empty = formula {
+                                return Ok(Precondition::Or(expressions));
                             } else {
                                 expressions.push(Box::new(formula));
                             }
@@ -64,7 +64,7 @@ impl<'a> Parser<'a> {
                         Token::Identifier(p1) => match self.tokenizer.get_token()? {
                             Token::Identifier(p2) => match self.tokenizer.get_token()? {
                                 Token::Punctuator(PunctuationType::RParentheses) => {
-                                    Ok(Formula::Equals(p1, p2))
+                                    Ok(Precondition::Equals(p1, p2))
                                 }
                                 token => {
                                     let error = SyntacticError {
@@ -95,11 +95,11 @@ impl<'a> Parser<'a> {
                     },
                     // Implication
                     Token::Operator(OperationType::Implication) => {
-                        let lhs = self.parse_formula()?;
-                        let rhs = self.parse_formula()?;
+                        let lhs = self.parse_precondition()?;
+                        let rhs = self.parse_precondition()?;
                         match self.tokenizer.get_token()? {
                             Token::Punctuator(PunctuationType::RParentheses) => {
-                                Ok(Formula::Imply(Box::new(lhs), Box::new(rhs)))
+                                Ok(Precondition::Imply(Box::new(lhs), Box::new(rhs)))
                             }
                             token => {
                                 let error = SyntacticError {
@@ -115,10 +115,10 @@ impl<'a> Parser<'a> {
                     Token::Operator(OperationType::ForAll) => match self.tokenizer.get_token()? {
                         Token::Punctuator(PunctuationType::LParentheses) => {
                             let params = self.parse_args()?;
-                            let expression = Box::new(self.parse_formula()?);
+                            let expression = Box::new(self.parse_precondition()?);
                             match self.tokenizer.get_token()? {
                                 Token::Punctuator(PunctuationType::RParentheses) => {
-                                    Ok(Formula::ForAll(params, expression))
+                                    Ok(Precondition::ForAll(params, expression))
                                 }
                                 token => {
                                     let error = SyntacticError {
@@ -143,10 +143,10 @@ impl<'a> Parser<'a> {
                     Token::Operator(OperationType::Exists) => match self.tokenizer.get_token()? {
                         Token::Punctuator(PunctuationType::LParentheses) => {
                             let params = self.parse_args()?;
-                            let expression = Box::new(self.parse_formula()?);
+                            let expression = Box::new(self.parse_precondition()?);
                             match self.tokenizer.get_token()? {
                                 Token::Punctuator(PunctuationType::RParentheses) => {
-                                    Ok(Formula::Exists(params, expression))
+                                    Ok(Precondition::Exists(params, expression))
                                 }
                                 token => {
                                     let error = SyntacticError {
@@ -169,57 +169,6 @@ impl<'a> Parser<'a> {
                             Err(ParsingError::Syntactic(error))
                         }
                     },
-                    // Stochastic Operations (represented as the And of Probabilistic branches)
-                    Token::Operator(OperationType::Probabilistic) => {
-                        let mut branches = vec![];
-                        loop {
-                            match self.tokenizer.get_token()? {
-                                // closing paren ends the block
-                                Token::Punctuator(PunctuationType::RParentheses) => {
-                                    return Ok(Formula::And(branches));
-                                }
-                                // a probability, immediately followed by its effect
-                                Token::Number(probability) => {
-                                    let value = match &probability {
-                                        NumberType::Real(r) => *r,
-                                        NumberType::Integer(i) => *i as f64,
-                                    };
-                                    if !(0.0..=1.0).contains(&value) {
-                                        let error = SyntacticError {
-                                            expected: "a probability in [0, 1]".to_string(),
-                                            found: probability.to_string(),
-                                            position: self.tokenizer.get_last_token_position(),
-                                        };
-                                        return Err(ParsingError::Syntactic(error));
-                                    }
-                                    let f = self.parse_formula()?;
-                                    if let Formula::Empty = f {
-                                        let error = SyntacticError {
-                                            expected: "a formula following the probability"
-                                                .to_string(),
-                                            found: ")".to_string(),
-                                            position: self.tokenizer.get_last_token_position(),
-                                        };
-                                        return Err(ParsingError::Syntactic(error));
-                                    }
-                                    branches.push(Box::new(Formula::Probabilistic(
-                                        probability,
-                                        Box::new(f),
-                                    )));
-                                }
-                                token => {
-                                    let error = SyntacticError {
-                                        expected:
-                                            "a probability or ')' to close the probabilistic block"
-                                                .to_string(),
-                                        found: token.to_string(),
-                                        position: self.tokenizer.get_last_token_position(),
-                                    };
-                                    return Err(ParsingError::Syntactic(error));
-                                }
-                            }
-                        }
-                    }
                     // Single Atom
                     Token::Identifier(name) => {
                         let predicate = Predicate {
@@ -227,9 +176,9 @@ impl<'a> Parser<'a> {
                             name_pos: self.tokenizer.get_last_token_position(),
                             variables: self.parse_args()?,
                         };
-                        Ok(Formula::Atom(predicate))
+                        Ok(Precondition::Atom(predicate))
                     }
-                    Token::Punctuator(PunctuationType::RParentheses) => Ok(Formula::Empty),
+                    Token::Punctuator(PunctuationType::RParentheses) => Ok(Precondition::Empty),
                     token => {
                         let error = SyntacticError {
                             expected: "a boolean formula".to_string(),

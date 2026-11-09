@@ -15,9 +15,9 @@ pub struct Action<'a> {
     pub name_pos: TokenPosition,
     pub parameters: Vec<Symbol<'a>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub preconditions: Option<Formula<'a>>,
+    pub preconditions: Option<Precondition<'a>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub effects: Option<Formula<'a>>,
+    pub effects: Option<Effect<'a>>,
 }
 
 impl<'a> fmt::Display for Action<'a> {

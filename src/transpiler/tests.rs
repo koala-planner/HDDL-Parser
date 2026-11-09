@@ -3,21 +3,25 @@ use std::{assert_eq, vec};
 
 use super::{Input, Transpiler};
 use crate::{
-    AbstractSyntaxTree, Action,
-    Formula::{self, Atom},
-    HDDLProgram, LexicalAnalyzer, NumberType, Parser, Predicate, Subtask, Symbol, TokenPosition,
+    AbstractSyntaxTree, Action, Effect, HDDLProgram, LexicalAnalyzer, Parser,
+    Precondition::{self, Atom},
+    Predicate, Subtask, Symbol, TokenPosition,
 };
 
 fn symbol(name: &'static str) -> Symbol<'static> {
     Symbol::new(name, TokenPosition { line: 0 }, None, None)
 }
 
-fn atom(name: &'static str, vars: Vec<&'static str>) -> Box<Formula<'static>> {
-    Box::new(Formula::Atom(Predicate::new(
+fn predicate(name: &'static str, vars: Vec<&'static str>) -> Predicate<'static> {
+    Predicate::new(
         name,
         TokenPosition { line: 0 },
         vars.into_iter().map(symbol).collect(),
-    )))
+    )
+}
+
+fn atom(name: &'static str, vars: Vec<&'static str>) -> Box<Precondition<'static>> {
+    Box::new(Precondition::Atom(predicate(name, vars)))
 }
 
 fn parse_domain(program: &Vec<u8>) -> crate::DomainAST<'_> {
@@ -48,34 +52,33 @@ fn assert_problem_round_trip(canonical: &str) {
 
 #[test]
 pub fn pddl_display_test() {
-    let formula = Formula::And(vec![
+    let formula = Precondition::And(vec![
         atom("at", vec!["p_1", "p_2"]),
-        Box::new(Formula::Not(atom("clear", vec![]))),
-        Box::new(Formula::Probabilistic(
-            NumberType::Real(0.5),
-            atom("holding", vec![]),
-        )),
-        Box::new(Formula::Equals("a", "b")),
+        Box::new(Precondition::Not(atom("clear", vec![]))),
+        Box::new(Precondition::Equals("a", "b")),
     ]);
     assert_eq!(
         formula.to_string(),
-        "(and\n\t(at p_1 p_2)\n\t(not (clear))\n\t(probabilistic 0.5 (holding))\n\t(= a b)\n)"
+        "(and\n\t(at p_1 p_2)\n\t(not (clear))\n\t(= a b)\n)"
     );
 
     let var = Symbol::new("x", TokenPosition { line: 0 }, Some("loc"), None);
-    let for_all = Formula::ForAll(vec![var], atom("p_1", vec![]));
+    let for_all = Precondition::ForAll(vec![var], atom("p_1", vec![]));
     assert_eq!(for_all.to_string(), "(forall (x - loc) (p_1))");
 
-    let when = Formula::Imply(
+    let when = Precondition::Imply(
         atom("p_1", vec![]),
-        Box::new(Formula::And(vec![atom("p_2", vec![]), atom("p_3", vec![])])),
+        Box::new(Precondition::And(vec![
+            atom("p_2", vec![]),
+            atom("p_3", vec![]),
+        ])),
     );
     assert_eq!(
         when.to_string(),
         "(when (p_1) (and\n\t\t(p_2)\n\t\t(p_3)\n\t))"
     );
 
-    let oneof = Formula::Xor(vec![atom("p_1", vec![]), atom("p_2", vec![])]);
+    let oneof = Precondition::Xor(vec![atom("p_1", vec![]), atom("p_2", vec![])]);
     assert_eq!(oneof.to_string(), "(oneof\n\t(p_1)\n\t(p_2)\n)");
 }
 
@@ -90,13 +93,16 @@ pub fn action_display_test() {
             Some("block"),
             None,
         )],
-        preconditions: Some(Formula::And(vec![
+        preconditions: Some(Precondition::And(vec![
             atom("clear", vec!["?x"]),
             atom("handempty", vec![]),
         ])),
-        effects: Some(Formula::And(vec![
-            atom("holding", vec!["?x"]),
-            Box::new(Formula::Not(atom("clear", vec!["?x"]))),
+        effects: Some(Effect::And(vec![
+            Box::new(Effect::Atom(predicate("holding", vec!["?x"]))),
+            Box::new(Effect::Not(Box::new(Effect::Atom(predicate(
+                "clear",
+                vec!["?x"],
+            ))))),
         ])),
     };
     assert_eq!(
@@ -442,11 +448,11 @@ pub fn untyping_test() {
             .iter()
             .all(|x| { x.symbol_type.is_none() && x.type_pos.is_none() })
     );
-    if let Some(Formula::And(prec)) = &action.preconditions {
+    if let Some(Precondition::And(prec)) = &action.preconditions {
         assert_eq!(prec.len(), 3);
-        if let Formula::Not(inner) = &*prec[0] {
+        if let Precondition::Not(inner) = &*prec[0] {
             match &**inner {
-                Formula::Atom(p) => {
+                Precondition::Atom(p) => {
                     assert_eq!(p.name, "at");
                 }
                 _ => panic!(),
@@ -454,7 +460,7 @@ pub fn untyping_test() {
         } else {
             panic!()
         }
-        if let Formula::Atom(x) = &*prec[1] {
+        if let Precondition::Atom(x) = &*prec[1] {
             assert_eq!(x.name, "car");
             assert_eq!(
                 x.variables,
@@ -463,7 +469,7 @@ pub fn untyping_test() {
         } else {
             panic!();
         }
-        if let Formula::Atom(x) = &*prec[2] {
+        if let Precondition::Atom(x) = &*prec[2] {
             assert_eq!(x.name, "location");
             assert_eq!(
                 x.variables,
@@ -477,14 +483,14 @@ pub fn untyping_test() {
     }
     // assert quantifier changes
     let action = &result.domain.actions[1];
-    if let Some(Formula::And(prec)) = &action.preconditions {
+    if let Some(Precondition::And(prec)) = &action.preconditions {
         assert_eq!(prec.len(), 2);
-        if let Formula::Exists(vars, body) = &*prec[0] {
+        if let Precondition::Exists(vars, body) = &*prec[0] {
             assert!(
                 vars.iter()
                     .all(|x| { x.symbol_type.is_none() && x.type_pos.is_none() })
             );
-            if let Formula::And(inner) = &**body {
+            if let Precondition::And(inner) = &**body {
                 assert_eq!(inner.len(), 2);
                 if let Atom(typing) = &*inner[0] {
                     assert_eq!(typing.name, "location");
@@ -514,13 +520,13 @@ pub fn untyping_test() {
     } else {
         panic!()
     }
-    if let Some(Formula::ForAll(vars, body)) = &action.effects {
+    if let Some(Effect::ForAll(vars, body)) = &action.effects {
         assert!(
             vars.iter()
                 .all(|x| { x.symbol_type.is_none() && x.type_pos.is_none() })
         );
-        if let Formula::Imply(lhs, rhs) = &**body {
-            if let Atom(typing) = &**lhs {
+        if let Effect::Imply(lhs, rhs) = &**body {
+            if let Effect::Atom(typing) = &**lhs {
                 assert_eq!(typing.name, "location");
                 assert_eq!(
                     typing.variables,
@@ -529,7 +535,7 @@ pub fn untyping_test() {
             } else {
                 panic!()
             }
-            assert!(matches!(&**rhs, Formula::Not(_)));
+            assert!(matches!(&**rhs, Effect::Not(_)));
         } else {
             panic!()
         }
@@ -549,8 +555,8 @@ pub fn untyping_test() {
             .iter()
             .all(|x| { x.symbol_type.is_none() && x.type_pos.is_none() })
     );
-    let assert_typings = |formula: &Formula, mut types: Vec<&str>| match formula {
-        Formula::And(inner) => {
+    let assert_typings = |formula: &Precondition, mut types: Vec<&str>| match formula {
+        Precondition::And(inner) => {
             assert_eq!(inner.len(), types.len());
             assert!(inner.iter().all(|x| {
                 if let Atom(pred) = &**x {
@@ -796,8 +802,8 @@ pub fn compile_equality_test() {
     // the equal predicate is declared and replaces every = literal
     assert!(result.domain.predicates.iter().any(|p| p.name == "EQUAL"));
     match &result.domain.methods[0].precondition {
-        Some(Formula::Not(inner)) => match &**inner {
-            Formula::Atom(predicate) => {
+        Some(Precondition::Not(inner)) => match &**inner {
+            Precondition::Atom(predicate) => {
                 assert_eq!(predicate.name, "EQUAL");
                 assert_eq!(predicate.variables[0].name, "?x");
                 assert_eq!(predicate.variables[1].name, "?y");
@@ -812,8 +818,8 @@ pub fn compile_equality_test() {
     let mut leftover_equals = false;
     effect.any_subformula(&mut |f| {
         match f {
-            Formula::Atom(predicate) if predicate.name == "EQUAL" => rewritten = true,
-            Formula::Equals(_, _) => leftover_equals = true,
+            Effect::Atom(predicate) if predicate.name == "EQUAL" => rewritten = true,
+            Effect::Equals(_, _) => leftover_equals = true,
             _ => {}
         }
         false
@@ -865,8 +871,8 @@ pub fn compile_equality_constraints_test() {
     let method = &result.domain.methods[0];
     assert!(method.tn.constraints.is_none());
     match &method.precondition {
-        Some(Formula::Not(inner)) => match &**inner {
-            Formula::Atom(predicate) => assert_eq!(predicate.name, "EQUAL"),
+        Some(Precondition::Not(inner)) => match &**inner {
+            Precondition::Atom(predicate) => assert_eq!(predicate.name, "EQUAL"),
             other => panic!("unexpected literal {other:?}"),
         },
         other => panic!("unexpected precondition {other:?}"),
@@ -913,7 +919,7 @@ pub fn conjunctive_preconditions_splits_action_test() {
         .find(|a| a.name == "act_a0")
         .unwrap();
     match &copy_0.preconditions {
-        Some(Formula::Atom(predicate)) => assert_eq!(predicate.name, "p"),
+        Some(Precondition::Atom(predicate)) => assert_eq!(predicate.name, "p"),
         other => panic!("unexpected precondition {other:?}"),
     }
     let copy_1 = result
@@ -923,12 +929,12 @@ pub fn conjunctive_preconditions_splits_action_test() {
         .find(|a| a.name == "act_a1")
         .unwrap();
     match &copy_1.preconditions {
-        Some(Formula::And(conjuncts)) => assert_eq!(conjuncts.len(), 2),
+        Some(Precondition::And(conjuncts)) => assert_eq!(conjuncts.len(), 2),
         other => panic!("unexpected precondition {other:?}"),
     }
     for copy in [copy_0, copy_1] {
         match &copy.effects {
-            Some(Formula::Atom(predicate)) => assert_eq!(predicate.name, "r"),
+            Some(Effect::Atom(predicate)) => assert_eq!(predicate.name, "r"),
             other => panic!("unexpected effect {other:?}"),
         }
     }
@@ -979,8 +985,8 @@ pub fn quantifier_elimination_test() {
         .transform(crate::Transformation::QuantifierElimintation)
         .unwrap()
         .into_program();
-    let assert_ground_atom = |formula: &Formula, name: &str, args: Vec<&str>| match formula {
-        Formula::Atom(predicate) => {
+    let assert_ground_atom = |formula: &Precondition, name: &str, args: Vec<&str>| match formula {
+        Precondition::Atom(predicate) => {
             assert_eq!(predicate.name, name);
             assert_eq!(
                 predicate
@@ -995,13 +1001,13 @@ pub fn quantifier_elimination_test() {
     };
     // the nested forall/exists becomes a conjunction of disjunctions
     let action = &result.domain.actions[0];
-    if let Some(Formula::And(outer)) = &action.preconditions {
+    if let Some(Precondition::And(outer)) = &action.preconditions {
         assert_eq!(outer.len(), 2);
         assert_ground_atom(&outer[0], "ready", vec![]);
-        if let Formula::And(per_location) = &*outer[1] {
+        if let Precondition::And(per_location) = &*outer[1] {
             assert_eq!(per_location.len(), 2);
             for (disjunction, location) in per_location.iter().zip(["loc_0", "loc_1"]) {
-                if let Formula::Or(per_pkg) = &**disjunction {
+                if let Precondition::Or(per_pkg) = &**disjunction {
                     // exists over pkg covers the box subtype object too
                     assert_eq!(per_pkg.len(), 2);
                     assert_ground_atom(&per_pkg[0], "at", vec!["p1", location]);
@@ -1017,7 +1023,7 @@ pub fn quantifier_elimination_test() {
         panic!("unexpected precondition {:?}", action.preconditions)
     }
     // a single forall binding two variables expands to the cartesian product
-    if let Some(Formula::And(effects)) = &action.effects {
+    if let Some(Effect::And(effects)) = &action.effects {
         let expected = [
             ("p1", "loc_0"),
             ("p1", "loc_1"),
@@ -1026,10 +1032,22 @@ pub fn quantifier_elimination_test() {
         ];
         assert_eq!(effects.len(), expected.len());
         for (effect, (pkg, location)) in effects.iter().zip(expected) {
-            if let Formula::Not(inner) = &**effect {
-                assert_ground_atom(inner, "at", vec![pkg, location]);
-            } else {
-                panic!("unexpected effect instance {effect:?}")
+            match &**effect {
+                Effect::Not(inner) => match &**inner {
+                    Effect::Atom(predicate) => {
+                        assert_eq!(predicate.name, "at");
+                        assert_eq!(
+                            predicate
+                                .variables
+                                .iter()
+                                .map(|v| v.name)
+                                .collect::<Vec<_>>(),
+                            vec![pkg, location]
+                        );
+                    }
+                    other => panic!("unexpected effect instance {other:?}"),
+                },
+                other => panic!("unexpected effect instance {other:?}"),
             }
         }
     } else {
@@ -1037,19 +1055,24 @@ pub fn quantifier_elimination_test() {
     }
     // method precondition
     let method = &result.domain.methods[0];
-    if let Some(Formula::Or(instances)) = &method.precondition {
+    if let Some(Precondition::Or(instances)) = &method.precondition {
         assert_eq!(instances.len(), 1);
         assert_ground_atom(&instances[0], "at", vec!["b1", "?l"]);
     } else {
         panic!("unexpected precondition {:?}", method.precondition)
     }
     // no quantifier survives anywhere
-    let quantifier_free = |formula: &Formula| {
-        !formula.any_subformula(&mut |f| matches!(f, Formula::ForAll(_, _) | Formula::Exists(_, _)))
+    let quantifier_free = |formula: &Precondition| {
+        !formula.any_subformula(&mut |f| {
+            matches!(f, Precondition::ForAll(_, _) | Precondition::Exists(_, _))
+        })
     };
     for action in result.domain.actions.iter() {
         assert!(action.preconditions.iter().all(&quantifier_free));
-        assert!(action.effects.iter().all(&quantifier_free));
+        assert!(action.effects.iter().all(|effect| {
+            !effect
+                .any_subformula(&mut |f| matches!(f, Effect::ForAll(_, _) | Effect::Exists(_, _)))
+        }));
     }
     for method in result.domain.methods.iter() {
         assert!(method.precondition.iter().all(&quantifier_free));
@@ -1088,7 +1111,7 @@ pub fn conjunctive_preconditions_splits_method_test() {
             .unwrap();
         assert_eq!(copy.task.name, "Top");
         match &copy.precondition {
-            Some(Formula::Atom(predicate)) => assert_eq!(predicate.name, atom_name),
+            Some(Precondition::Atom(predicate)) => assert_eq!(predicate.name, atom_name),
             other => panic!("unexpected precondition {other:?}"),
         }
         assert_eq!(copy.tn.subtasks[0].task.name, "act");

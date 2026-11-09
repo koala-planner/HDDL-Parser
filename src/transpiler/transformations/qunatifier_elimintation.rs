@@ -17,7 +17,7 @@ impl<'a> Transpiler<'a> {
             if let Some(effect) = &mut action.effects
                 && effect.is_quantified()
             {
-                Self::expand_quantifiers(effect, problem, &type_checker);
+                Self::expand_quantified_effects(effect, problem, &type_checker);
             }
         }
 
@@ -34,43 +34,24 @@ impl<'a> Transpiler<'a> {
     /// Recursively replaces every `forall`/`exists` with the conjunction or
     /// disjunction of its body instantiated over all type-compatible objects.
     fn expand_quantifiers(
-        formula: &mut Formula<'a>,
+        formula: &mut Precondition<'a>,
         problem: &ProblemAST<'a>,
         type_checker: &TypeChecker<'a>,
     ) {
         match formula {
-            Formula::ForAll(_, _) | Formula::Exists(_, _) => {
-                let quantified = std::mem::replace(formula, Formula::Empty);
+            Precondition::ForAll(_, _) | Precondition::Exists(_, _) => {
+                let quantified = std::mem::replace(formula, Precondition::Empty);
                 let (vars, body, is_forall) = match quantified {
-                    Formula::ForAll(vars, body) => (vars, body, true),
-                    Formula::Exists(vars, body) => (vars, body, false),
+                    Precondition::ForAll(vars, body) => (vars, body, true),
+                    Precondition::Exists(vars, body) => (vars, body, false),
                     _ => unreachable!(),
                 };
 
-                // objects each bound variable can take, respecting subtyping
-                let var_domains: Vec<Vec<Symbol<'a>>> = vars
-                    .iter()
-                    .map(|v| Self::objects_of_type(problem, v.symbol_type, type_checker))
-                    .collect();
-
-                // cartesian product over the bound variables
-                let mut groundings: Vec<Vec<_>> = vec![Vec::new()];
-                for domain in &var_domains {
-                    let mut extended = Vec::with_capacity(groundings.len() * domain.len());
-                    for grounding in &groundings {
-                        for object in domain {
-                            let mut grounding = grounding.clone();
-                            grounding.push(object);
-                            extended.push(grounding);
-                        }
-                    }
-                    groundings = extended;
-                }
-
+                let groundings = Self::groundings(&vars, problem, type_checker);
                 let mut instances = Vec::with_capacity(groundings.len());
                 for grounding in groundings {
                     let mut instance = (*body).clone();
-                    for (var, object) in vars.iter().zip(grounding) {
+                    for (var, object) in vars.iter().zip(&grounding) {
                         instance = instance.substitute(var.name, object);
                     }
                     // the body may contain further quantifiers
@@ -79,25 +60,96 @@ impl<'a> Transpiler<'a> {
                 }
 
                 *formula = if is_forall {
-                    Formula::And(instances)
+                    Precondition::And(instances)
                 } else {
-                    Formula::Or(instances)
+                    Precondition::Or(instances)
                 };
             }
-            Formula::Not(f) | Formula::Probabilistic(_, f) => {
-                Self::expand_quantifiers(f, problem, type_checker)
-            }
-            Formula::And(fs) | Formula::Or(fs) | Formula::Xor(fs) => {
+            Precondition::Not(f) => Self::expand_quantifiers(f, problem, type_checker),
+            Precondition::And(fs) | Precondition::Or(fs) | Precondition::Xor(fs) => {
                 for f in fs.iter_mut() {
                     Self::expand_quantifiers(f, problem, type_checker);
                 }
             }
-            Formula::Imply(lhs, rhs) => {
+            Precondition::Imply(lhs, rhs) => {
                 Self::expand_quantifiers(lhs, problem, type_checker);
                 Self::expand_quantifiers(rhs, problem, type_checker);
             }
-            Formula::Empty | Formula::Atom(_) | Formula::Equals(_, _) => {}
+            Precondition::Empty | Precondition::Atom(_) | Precondition::Equals(_, _) => {}
         }
+    }
+
+    /// The effect counterpart of `expand_quantifiers`.
+    fn expand_quantified_effects(
+        effect: &mut Effect<'a>,
+        problem: &ProblemAST<'a>,
+        type_checker: &TypeChecker<'a>,
+    ) {
+        match effect {
+            Effect::ForAll(_, _) | Effect::Exists(_, _) => {
+                let quantified = std::mem::replace(effect, Effect::Empty);
+                let (vars, body, is_forall) = match quantified {
+                    Effect::ForAll(vars, body) => (vars, body, true),
+                    Effect::Exists(vars, body) => (vars, body, false),
+                    _ => unreachable!(),
+                };
+
+                let groundings = Self::groundings(&vars, problem, type_checker);
+                let mut instances = Vec::with_capacity(groundings.len());
+                for grounding in groundings {
+                    let mut instance = (*body).clone();
+                    for (var, object) in vars.iter().zip(&grounding) {
+                        instance = instance.substitute(var.name, object);
+                    }
+                    // the body may contain further quantifiers
+                    Self::expand_quantified_effects(&mut instance, problem, type_checker);
+                    instances.push(Box::new(instance));
+                }
+
+                *effect = if is_forall {
+                    Effect::And(instances)
+                } else {
+                    Effect::Or(instances)
+                };
+            }
+            Effect::Not(f) | Effect::Probabilistic(_, f) => {
+                Self::expand_quantified_effects(f, problem, type_checker)
+            }
+            Effect::And(fs) | Effect::Or(fs) | Effect::Xor(fs) => {
+                for f in fs.iter_mut() {
+                    Self::expand_quantified_effects(f, problem, type_checker);
+                }
+            }
+            Effect::Imply(lhs, rhs) => {
+                Self::expand_quantified_effects(lhs, problem, type_checker);
+                Self::expand_quantified_effects(rhs, problem, type_checker);
+            }
+            Effect::Empty | Effect::Atom(_) | Effect::Equals(_, _) => {}
+        }
+    }
+
+    /// Every assignment of type-compatible objects to the bound variables, in
+    /// cartesian-product order.
+    fn groundings(
+        vars: &[Symbol<'a>],
+        problem: &ProblemAST<'a>,
+        type_checker: &TypeChecker<'a>,
+    ) -> Vec<Vec<Symbol<'a>>> {
+        let mut groundings: Vec<Vec<Symbol<'a>>> = vec![Vec::new()];
+        for var in vars {
+            // objects the variable can take, respecting subtyping
+            let domain = Self::objects_of_type(problem, var.symbol_type, type_checker);
+            let mut extended = Vec::with_capacity(groundings.len() * domain.len());
+            for grounding in &groundings {
+                for object in &domain {
+                    let mut grounding = grounding.clone();
+                    grounding.push(object.clone());
+                    extended.push(grounding);
+                }
+            }
+            groundings = extended;
+        }
+        groundings
     }
 
     /// Objects compatible with `of_type` under the declared type hierarchy.

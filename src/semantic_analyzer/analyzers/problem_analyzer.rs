@@ -64,7 +64,7 @@ impl<'a> ProblemSemanticAnalyzer<'a> {
 
         // check goal description
         if let Some(goal) = &self.problem.goal {
-            for predicate in goal.get_propositional_predicates() {
+            for predicate in goal.get_predicates(false) {
                 self.type_checker.check_predicate_instantiation(predicate)?;
             }
         }

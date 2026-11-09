@@ -44,7 +44,7 @@ impl<'a> Parser<'a> {
                         }
                         // goal state (optional)
                         Token::Keyword(KeywordName::Goal) => {
-                            let goal = self.parse_formula()?;
+                            let goal = self.parse_precondition()?;
                             syntax_tree.add_goal(goal)
                         }
                         // initial state

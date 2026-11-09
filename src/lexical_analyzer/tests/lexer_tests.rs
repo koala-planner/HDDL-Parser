@@ -280,9 +280,7 @@ mod lexer_test {
 
     #[test]
     pub fn numeric_operator_recognition_test() {
-        let program =
-            String::from("increase decrease assign scale-up scale-down\n")
-                .into_bytes();
+        let program = String::from("increase decrease assign scale-up scale-down\n").into_bytes();
         let lexer = LexicalAnalyzer::new(&program);
         for expected in [
             Token::Operator(OperationType::Increase),

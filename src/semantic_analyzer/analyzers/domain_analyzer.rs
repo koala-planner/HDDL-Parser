@@ -69,10 +69,12 @@ impl<'a> DomainSemanticAnalyzer<'a> {
             }
             // assert precondition predicates are declared
             if let Some(precondition) = &action.preconditions {
-                check_predicate_declarations(precondition, &self.domain.predicates)?;
-                let precond_predicates = precondition.get_propositional_predicates();
+                check_predicate_declarations(
+                    &precondition.get_predicates(true),
+                    &self.domain.predicates,
+                )?;
                 self.type_checker.check_formula(
-                    &precond_predicates,
+                    &precondition.get_predicates(false),
                     &action.parameters,
                     &declared_constants,
                     &declared_predicates,
@@ -80,10 +82,12 @@ impl<'a> DomainSemanticAnalyzer<'a> {
             }
             // assert effect predicates are declared
             if let Some(effect) = &action.effects {
-                check_predicate_declarations(effect, &self.domain.predicates)?;
-                let eff_predicates = effect.get_propositional_predicates();
+                check_predicate_declarations(
+                    &effect.get_predicates(true),
+                    &self.domain.predicates,
+                )?;
                 self.type_checker.check_formula(
-                    &eff_predicates,
+                    &effect.get_predicates(false),
                     &action.parameters,
                     &declared_constants,
                     &declared_predicates,
@@ -124,10 +128,12 @@ impl<'a> DomainSemanticAnalyzer<'a> {
             }
             // Assert preconditions are valid
             if let Some(precondition) = &method.precondition {
-                check_predicate_declarations(precondition, &self.domain.predicates)?;
-                let precond_predicates = precondition.get_propositional_predicates();
+                check_predicate_declarations(
+                    &precondition.get_predicates(true),
+                    &self.domain.predicates,
+                )?;
                 self.type_checker.check_formula(
-                    &precond_predicates,
+                    &precondition.get_predicates(false),
                     &method.params,
                     &declared_constants,
                     &declared_predicates,
@@ -271,6 +277,4 @@ impl<'a> DomainSemanticAnalyzer<'a> {
         }
         None
     }
-
-    // fn verify_formula(formula: &Formula<'a>, declared_predicates: HashSet<u>)
 }

@@ -263,11 +263,11 @@ mod tests {
                 assert_eq!(method.tn.subtasks[1].terms[1].name, "?l2");
                 assert_eq!(method.tn.subtasks[1].terms[2].name, "?l3");
                 match &method.precondition {
-                    Some(Formula::And(predicates)) => {
+                    Some(Precondition::And(predicates)) => {
                         assert_eq!(predicates.len(), 3);
                         let pred1 = &*predicates[0];
                         match pred1 {
-                            Formula::Atom(pred) => {
+                            Precondition::Atom(pred) => {
                                 assert_eq!(pred.name, "at");
                                 assert_eq!(pred.name_pos.line, 5);
                                 assert_eq!(pred.variables.len(), 2);
@@ -278,7 +278,7 @@ mod tests {
                         }
                         let pred2 = &*predicates[1];
                         match pred2 {
-                            Formula::Atom(pred) => {
+                            Precondition::Atom(pred) => {
                                 assert_eq!(pred.name, "driver");
                                 assert_eq!(pred.name_pos.line, 6);
                                 assert_eq!(pred.variables.len(), 1);
@@ -290,8 +290,8 @@ mod tests {
 
                         let neq = &*predicates[2];
                         match neq {
-                            Formula::Not(equality) => match **equality {
-                                Formula::Equals(a, b) => {
+                            Precondition::Not(equality) => match **equality {
+                                Precondition::Equals(a, b) => {
                                     assert_eq!(a, "?l1");
                                     assert_eq!(b, "?l2");
                                 }
@@ -341,7 +341,7 @@ mod tests {
                 assert_eq!(method.task_terms[1].name, "?l1");
                 assert_eq!(method.task_terms[2].name, "?l2");
                 match &method.precondition {
-                    Some(Formula::ForAll(params, exp)) => {
+                    Some(Precondition::ForAll(params, exp)) => {
                         assert_eq!(params.len(), 2);
                         assert_eq!(params[0].name, "?l1");
                         match params[0].symbol_type {
@@ -362,7 +362,7 @@ mod tests {
                             }
                         }
                         match **exp {
-                            Formula::Equals(a, b) => {
+                            Precondition::Equals(a, b) => {
                                 assert_eq!(a, "?l1");
                                 assert_eq!(b, "?l2");
                             }
@@ -625,8 +625,8 @@ mod tests {
                 assert_eq!(a1_vars, vec!["p_1", "p_2", "p_3"]);
                 assert_eq!(a1_var_types, vec!["t1", "t1", "t2"]);
                 match &action.preconditions.as_ref().unwrap() {
-                    Formula::Not(formula) => match &**formula {
-                        Formula::Atom(predicate) => {
+                    Precondition::Not(formula) => match &**formula {
+                        Precondition::Atom(predicate) => {
                             assert_eq!(predicate.name, "at");
                             assert_eq!(predicate.variables.len(), 1);
                             assert_eq!(predicate.variables[0].name, "p_1");
@@ -638,10 +638,10 @@ mod tests {
                     _ => panic!("wrong formula"),
                 }
                 match &action.effects.as_ref().unwrap() {
-                    Formula::And(formula) => {
+                    Effect::And(formula) => {
                         assert_eq!(formula.len(), 2);
-                        if let Formula::Not(exp) = formula[0].as_ref() {
-                            if let Formula::Atom(pred) = exp.as_ref() {
+                        if let Effect::Not(exp) = formula[0].as_ref() {
+                            if let Effect::Atom(pred) = exp.as_ref() {
                                 assert_eq!(pred.name, "hold");
                                 assert_eq!(pred.variables.len(), 2);
                                 assert_eq!(pred.variables[0].name, "p_2");
@@ -652,7 +652,7 @@ mod tests {
                         } else {
                             panic!("wrong formula")
                         };
-                        if let Formula::Atom(pred) = formula[1].as_ref() {
+                        if let Effect::Atom(pred) = formula[1].as_ref() {
                             assert_eq!(pred.name, "at");
                             assert_eq!(pred.variables.len(), 1);
                             assert_eq!(pred.variables[0].name, "p_2");
@@ -701,11 +701,11 @@ mod tests {
                 assert_eq!(a1_vars, vec!["p_1", "p_2", "p_3"]);
                 assert_eq!(a1_var_types, vec!["t1", "t1", "t2"]);
                 match &action.preconditions.as_ref().unwrap() {
-                    Formula::And(exps) => {
+                    Precondition::And(exps) => {
                         assert_eq!(exps.len(), 2);
                         match &*exps[0] {
-                            Formula::Not(formula) => match &**formula {
-                                Formula::Atom(predicate) => {
+                            Precondition::Not(formula) => match &**formula {
+                                Precondition::Atom(predicate) => {
                                     assert_eq!(predicate.name, "at");
                                     assert_eq!(predicate.variables.len(), 1);
                                     assert_eq!(predicate.variables[0].name, "p_1");
@@ -717,11 +717,11 @@ mod tests {
                             _ => panic!(),
                         }
                         match &*exps[1] {
-                            Formula::Exists(q, qs) => {
+                            Precondition::Exists(q, qs) => {
                                 assert_eq!(q.len(), 2);
                                 assert_eq!(q[0].name, "?num1");
                                 assert_eq!(q[1].name, "?num2");
-                                let predicates = qs.get_propositional_predicates();
+                                let predicates = qs.get_predicates(false);
                                 assert_eq!(predicates.len(), 1);
                             }
                             _ => panic!(),
@@ -731,11 +731,11 @@ mod tests {
                     _ => panic!("wrong formula"),
                 }
                 match &action.effects.as_ref().unwrap() {
-                    Formula::And(formula) => {
+                    Effect::And(formula) => {
                         assert_eq!(formula.len(), 3);
                         match formula[0].as_ref() {
-                            Formula::Not(exp) => {
-                                if let Formula::Atom(pred) = exp.as_ref() {
+                            Effect::Not(exp) => {
+                                if let Effect::Atom(pred) = exp.as_ref() {
                                     assert_eq!(pred.name, "hold");
                                     assert_eq!(pred.variables.len(), 2);
                                     assert_eq!(pred.variables[0].name, "p_2");
@@ -747,7 +747,7 @@ mod tests {
                             _ => panic!(),
                         }
                         match formula[1].as_ref() {
-                            Formula::Atom(pred) => {
+                            Effect::Atom(pred) => {
                                 assert_eq!(pred.name, "at");
                                 assert_eq!(pred.variables.len(), 1);
                                 assert_eq!(pred.variables[0].name, "p_2");
@@ -755,10 +755,10 @@ mod tests {
                             _ => panic!(),
                         }
                         match formula[2].as_ref() {
-                            Formula::ForAll(q, e) => {
+                            Effect::ForAll(q, e) => {
                                 assert_eq!(q.len(), 1);
                                 assert_eq!(q[0].name, "?loc");
-                                assert_eq!(e.get_propositional_predicates().len(), 2);
+                                assert_eq!(e.get_predicates(false).len(), 2);
                             }
                             _ => panic!(),
                         }
@@ -797,10 +797,10 @@ mod tests {
                 assert_eq!(a1_vars, vec!["p_1", "p_2", "p_3"]);
                 assert_eq!(a1_var_types, vec!["t1", "t1", "t2"]);
                 match &action.effects.as_ref().unwrap() {
-                    Formula::Xor(formula) => {
+                    Effect::Xor(formula) => {
                         assert_eq!(formula.len(), 2);
-                        if let Formula::Not(exp) = formula[0].as_ref() {
-                            if let Formula::Atom(pred) = exp.as_ref() {
+                        if let Effect::Not(exp) = formula[0].as_ref() {
+                            if let Effect::Atom(pred) = exp.as_ref() {
                                 assert_eq!(pred.name, "hold");
                                 assert_eq!(pred.variables.len(), 2);
                                 assert_eq!(pred.variables[0].name, "p_2");
@@ -811,7 +811,7 @@ mod tests {
                         } else {
                             panic!("wrong formula")
                         };
-                        if let Formula::Atom(pred) = formula[1].as_ref() {
+                        if let Effect::Atom(pred) = formula[1].as_ref() {
                             assert_eq!(pred.name, "at");
                             assert_eq!(pred.variables.len(), 1);
                             assert_eq!(pred.variables[0].name, "p_2");
@@ -852,15 +852,15 @@ mod tests {
                 assert_eq!(action.name, "a_1");
                 // a probabilistic block parses to the And of its Probabilistic branches
                 match &action.effects.as_ref().unwrap() {
-                    Formula::And(branches) => {
+                    Effect::And(branches) => {
                         assert_eq!(branches.len(), 2);
                         // branch 1: 0.8 (and (not (at p_2 p_3)) (at p_2))
-                        if let Formula::Probabilistic(probability, effect) = branches[0].as_ref() {
+                        if let Effect::Probabilistic(probability, effect) = branches[0].as_ref() {
                             assert_eq!(*probability, NumberType::Real(0.8));
-                            if let Formula::And(conj) = effect.as_ref() {
+                            if let Effect::And(conj) = effect.as_ref() {
                                 assert_eq!(conj.len(), 2);
-                                if let Formula::Not(inner) = conj[0].as_ref() {
-                                    if let Formula::Atom(pred) = inner.as_ref() {
+                                if let Effect::Not(inner) = conj[0].as_ref() {
+                                    if let Effect::Atom(pred) = inner.as_ref() {
                                         assert_eq!(pred.name, "at");
                                         assert_eq!(pred.variables.len(), 2);
                                         assert_eq!(pred.variables[0].name, "p_2");
@@ -871,7 +871,7 @@ mod tests {
                                 } else {
                                     panic!("wrong formula")
                                 }
-                                if let Formula::Atom(pred) = conj[1].as_ref() {
+                                if let Effect::Atom(pred) = conj[1].as_ref() {
                                     assert_eq!(pred.name, "at");
                                     assert_eq!(pred.variables.len(), 1);
                                     assert_eq!(pred.variables[0].name, "p_2");
@@ -886,14 +886,14 @@ mod tests {
                         }
 
                         // branch 2: 0.2 (probabilistic 0.5 (hold p_2 p_3) 0.5 (not (at p_2)))
-                        if let Formula::Probabilistic(probability, effect) = branches[1].as_ref() {
+                        if let Effect::Probabilistic(probability, effect) = branches[1].as_ref() {
                             assert_eq!(*probability, NumberType::Real(0.2));
                             // the nested probabilistic is itself an And of Probabilistic
-                            if let Formula::And(nested) = effect.as_ref() {
+                            if let Effect::And(nested) = effect.as_ref() {
                                 assert_eq!(nested.len(), 2);
-                                if let Formula::Probabilistic(p, e) = nested[0].as_ref() {
+                                if let Effect::Probabilistic(p, e) = nested[0].as_ref() {
                                     assert_eq!(*p, NumberType::Real(0.5));
-                                    if let Formula::Atom(pred) = e.as_ref() {
+                                    if let Effect::Atom(pred) = e.as_ref() {
                                         assert_eq!(pred.name, "hold");
                                         assert_eq!(pred.variables.len(), 2);
                                         assert_eq!(pred.variables[0].name, "p_2");
@@ -904,10 +904,10 @@ mod tests {
                                 } else {
                                     panic!("expected a probability branch")
                                 }
-                                if let Formula::Probabilistic(p, e) = nested[1].as_ref() {
+                                if let Effect::Probabilistic(p, e) = nested[1].as_ref() {
                                     assert_eq!(*p, NumberType::Real(0.5));
-                                    if let Formula::Not(inner) = e.as_ref() {
-                                        if let Formula::Atom(pred) = inner.as_ref() {
+                                    if let Effect::Not(inner) = e.as_ref() {
+                                        if let Effect::Atom(pred) = inner.as_ref() {
                                             assert_eq!(pred.name, "at");
                                             assert_eq!(pred.variables.len(), 1);
                                             assert_eq!(pred.variables[0].name, "p_2");

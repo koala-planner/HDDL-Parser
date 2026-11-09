@@ -1,4 +1,4 @@
-mod formula_tests;
+mod precondition_test;
 mod syntax_tests;
 
 use super::*;

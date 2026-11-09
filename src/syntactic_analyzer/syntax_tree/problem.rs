@@ -15,7 +15,7 @@ pub struct ProblemAST<'a> {
     pub init_tn: Option<InitialTaskNetwork<'a>>,
     pub init_state: Vec<Predicate<'a>>,
     #[serde(default)]
-    pub goal: Option<Formula<'a>>,
+    pub goal: Option<Precondition<'a>>,
     #[serde(borrow)]
     pub objects: Vec<Symbol<'a>>,
 }
@@ -55,7 +55,7 @@ impl<'a> ProblemAST<'a> {
     pub fn extend_init_state(&mut self, state: Vec<Predicate<'a>>) {
         self.init_state.extend(state);
     }
-    pub fn add_goal(&mut self, goal: Formula<'a>) {
+    pub fn add_goal(&mut self, goal: Precondition<'a>) {
         self.goal = Some(goal);
     }
     pub fn add_requirement(&mut self, req: RequirementType) {
