@@ -252,6 +252,23 @@ impl<'a> Transpiler<'a> {
             .collect()
     }
 
+    // the conditional-effect guard asserting the constraints: a lone type
+    // atom, or their conjunction
+    fn constraint_guard(
+        constraints: Vec<(&'a str, &'a str)>,
+        type_predicates: &HashMap<&'a str, &'a str>,
+    ) -> Precondition<'a> {
+        let mut atoms: Vec<Precondition<'a>> =
+            Transpiler::constraint_predicates(constraints, type_predicates)
+                .into_iter()
+                .map(Precondition::Atom)
+                .collect();
+        match atoms.len() {
+            1 => atoms.pop().unwrap(),
+            _ => Precondition::And(atoms.into_iter().map(Box::new).collect()),
+        }
+    }
+
     fn apply_constraints(
         precondition: &mut Option<Precondition<'a>>,
         constraints: Vec<(&'a str, &'a str)>,
@@ -309,17 +326,9 @@ impl<'a> Transpiler<'a> {
                     checker,
                 );
                 if !constraints.is_empty() {
-                    let mut atoms: Vec<Precondition<'a>> =
-                        Transpiler::constraint_predicates(constraints, type_predicates)
-                            .into_iter()
-                            .map(Precondition::Atom)
-                            .collect();
-                    let lhs = match atoms.len() {
-                        1 => Box::new(atoms.pop().unwrap()),
-                        _ => Box::new(Precondition::And(atoms.into_iter().map(Box::new).collect())),
-                    };
+                    let guard = Transpiler::constraint_guard(constraints, type_predicates);
                     let rhs = Box::new(std::mem::replace(&mut **body, Precondition::Empty));
-                    **body = Precondition::Imply(lhs, rhs);
+                    **body = Precondition::Imply(Box::new(guard), rhs);
                 }
             }
         }
@@ -333,17 +342,20 @@ impl<'a> Transpiler<'a> {
     ) {
         match effect {
             Effect::Empty | Effect::Atom(_) | Effect::Equals(_, _) => {}
-            Effect::Not(inner) | Effect::Probabilistic(_, inner) => {
-                Transpiler::untype_effect(inner, checker, type_predicates)
-            }
+            Effect::Not(inner) => Transpiler::untype_effect(inner, checker, type_predicates),
             Effect::And(terms) | Effect::Or(terms) | Effect::Xor(terms) => {
                 for term in terms.iter_mut() {
                     Transpiler::untype_effect(term, checker, type_predicates);
                 }
             }
-            Effect::Imply(lhs, rhs) => {
-                Transpiler::untype_effect(lhs, checker, type_predicates);
-                Transpiler::untype_effect(rhs, checker, type_predicates);
+            Effect::Imply(guard, body) => {
+                Transpiler::untype_formula(guard, checker, type_predicates);
+                Transpiler::untype_effect(body, checker, type_predicates);
+            }
+            Effect::Probabilistic(branches) => {
+                for (_, effect) in branches.iter_mut() {
+                    Transpiler::untype_effect(effect, checker, type_predicates);
+                }
             }
             Effect::Exists(vars, body) => {
                 Transpiler::untype_effect(body, checker, type_predicates);
@@ -368,17 +380,9 @@ impl<'a> Transpiler<'a> {
                     checker,
                 );
                 if !constraints.is_empty() {
-                    let mut atoms: Vec<Effect<'a>> =
-                        Transpiler::constraint_predicates(constraints, type_predicates)
-                            .into_iter()
-                            .map(Effect::Atom)
-                            .collect();
-                    let lhs = match atoms.len() {
-                        1 => Box::new(atoms.pop().unwrap()),
-                        _ => Box::new(Effect::And(atoms.into_iter().map(Box::new).collect())),
-                    };
+                    let guard = Transpiler::constraint_guard(constraints, type_predicates);
                     let rhs = Box::new(std::mem::replace(&mut **body, Effect::Empty));
-                    **body = Effect::Imply(lhs, rhs);
+                    **body = Effect::Imply(Box::new(guard), rhs);
                 }
             }
         }

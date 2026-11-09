@@ -15,14 +15,15 @@ pub enum Effect<'a> {
     And(Vec<Box<Effect<'a>>>),
     Or(Vec<Box<Effect<'a>>>),
     Xor(Vec<Box<Effect<'a>>>),
-    // formula -> formula'
-    Imply(Box<Effect<'a>>, Box<Effect<'a>>),
+    // (when guard body): the body applies when the guard, a precondition, holds
+    Imply(Box<Precondition<'a>>, Box<Effect<'a>>),
     // ∃vars: formula
     Exists(Vec<Symbol<'a>>, Box<Effect<'a>>),
     // ∀vars: formula
     ForAll(Vec<Symbol<'a>>, Box<Effect<'a>>),
-    // a formula holding with the given probability in [0, 1]
-    Probabilistic(NumberType, Box<Effect<'a>>),
+    // exactly one branch applies, each with its probability in [0, 1]; the
+    // remaining mass is no effect
+    Probabilistic(Vec<(NumberType, Box<Effect<'a>>)>),
     // formula = formula'
     Equals(#[serde(borrow)] &'a str, &'a str),
 }
@@ -37,7 +38,7 @@ impl<'a> Effect<'a> {
             Effect::Atom(predicate) => {
                 predicates.push(predicate);
             }
-            Effect::Not(inner) | Effect::Probabilistic(_, inner) => {
+            Effect::Not(inner) => {
                 predicates.extend(inner.get_predicates(include_quantified));
             }
             Effect::And(terms) | Effect::Or(terms) | Effect::Xor(terms) => {
@@ -45,13 +46,18 @@ impl<'a> Effect<'a> {
                     predicates.extend(term.get_predicates(include_quantified));
                 }
             }
-            Effect::Imply(lhs, rhs) => {
-                predicates.extend(lhs.get_predicates(include_quantified));
-                predicates.extend(rhs.get_predicates(include_quantified));
+            Effect::Imply(guard, body) => {
+                predicates.extend(guard.get_predicates(include_quantified));
+                predicates.extend(body.get_predicates(include_quantified));
             }
             Effect::ForAll(_, body) | Effect::Exists(_, body) => {
                 if include_quantified {
                     predicates.extend(body.get_predicates(true));
+                }
+            }
+            Effect::Probabilistic(branches) => {
+                for (_, effect) in branches {
+                    predicates.extend(effect.get_predicates(include_quantified));
                 }
             }
         }
@@ -94,8 +100,10 @@ impl<'a> Effect<'a> {
             }
             Effect::Exists(_, _) | Effect::ForAll(_, _) => true,
             Effect::Not(inner) => inner.is_quantified(),
-            Effect::Imply(lhs, rhs) => lhs.is_quantified() || rhs.is_quantified(),
-            Effect::Probabilistic(_, inner) => inner.is_quantified(),
+            Effect::Imply(guard, body) => guard.is_quantified() || body.is_quantified(),
+            Effect::Probabilistic(branches) => {
+                branches.iter().any(|(_, effect)| effect.is_quantified())
+            }
         }
     }
 
@@ -131,9 +139,9 @@ impl<'a> Effect<'a> {
                     .map(|term| Box::new(term.substitute(var, value)))
                     .collect(),
             ),
-            Effect::Imply(lhs, rhs) => Effect::Imply(
-                Box::new(lhs.substitute(var, value)),
-                Box::new(rhs.substitute(var, value)),
+            Effect::Imply(guard, body) => Effect::Imply(
+                Box::new(guard.substitute(var, value)),
+                Box::new(body.substitute(var, value)),
             ),
             Effect::Exists(vars, body) => {
                 if vars.iter().any(|v| v.name == var) {
@@ -149,9 +157,14 @@ impl<'a> Effect<'a> {
                     Effect::ForAll(vars.clone(), Box::new(body.substitute(var, value)))
                 }
             }
-            Effect::Probabilistic(probability, inner) => {
-                Effect::Probabilistic(probability.clone(), Box::new(inner.substitute(var, value)))
-            }
+            Effect::Probabilistic(branches) => Effect::Probabilistic(
+                branches
+                    .iter()
+                    .map(|(probability, effect)| {
+                        (probability.clone(), Box::new(effect.substitute(var, value)))
+                    })
+                    .collect(),
+            ),
             Effect::Equals(lhs, rhs) => Effect::Equals(
                 if *lhs == var { value.name } else { lhs },
                 if *rhs == var { value.name } else { rhs },
@@ -160,7 +173,9 @@ impl<'a> Effect<'a> {
     }
 
     // whether any subformula (including self) satisfies the predicate; the
-    // walk descends into quantifier bodies.
+    // walk descends into quantifier bodies and probabilistic branches but not
+    // into the guard of a conditional effect, which is a precondition: a
+    // predicate interested in guards inspects them on the Imply node
     pub fn any_subformula<F: FnMut(&Effect<'a>) -> bool>(&self, predicate: &mut F) -> bool {
         if predicate(self) {
             return true;
@@ -168,15 +183,15 @@ impl<'a> Effect<'a> {
         match self {
             Effect::Empty | Effect::Atom(_) | Effect::Equals(_, _) => false,
             Effect::Not(inner)
-            | Effect::Probabilistic(_, inner)
+            | Effect::Imply(_, inner)
             | Effect::Exists(_, inner)
             | Effect::ForAll(_, inner) => inner.any_subformula(predicate),
             Effect::And(terms) | Effect::Or(terms) | Effect::Xor(terms) => {
                 terms.iter().any(|term| term.any_subformula(predicate))
             }
-            Effect::Imply(lhs, rhs) => {
-                lhs.any_subformula(predicate) || rhs.any_subformula(predicate)
-            }
+            Effect::Probabilistic(branches) => branches
+                .iter()
+                .any(|(_, effect)| effect.any_subformula(predicate)),
         }
     }
 }
@@ -187,16 +202,15 @@ impl<'a> fmt::Display for Effect<'a> {
         fn shift<T: fmt::Display>(term: &T) -> String {
             term.to_string().replace('\n', "\n\t")
         }
-        // a connective with a single term stays inline, more get one line each
-        fn connective(name: &str, terms: &[Box<Effect>]) -> String {
-            match terms {
+        // a connective over shifted terms: a single term stays inline, more
+        // get one line each
+        fn connective(name: &str, terms: impl Iterator<Item = String>) -> String {
+            let terms: Vec<String> = terms.collect();
+            match terms.as_slice() {
                 [] => format!("({} )", name),
-                [single] => format!("({} {})", name, shift(single)),
+                [single] => format!("({} {})", name, single),
                 _ => {
-                    let lines: String = terms
-                        .iter()
-                        .map(|term| format!("\n\t{}", shift(term)))
-                        .collect();
+                    let lines: String = terms.iter().map(|term| format!("\n\t{}", term)).collect();
                     format!("({}{}\n)", name, lines)
                 }
             }
@@ -211,25 +225,21 @@ impl<'a> fmt::Display for Effect<'a> {
                 write!(f, ")")
             }
             Effect::Not(inner) => write!(f, "(not {})", shift(inner)),
-            Effect::And(terms) => write!(f, "{}", connective("and", terms)),
-            Effect::Or(terms) => write!(f, "{}", connective("or", terms)),
-            Effect::Xor(terms) => write!(f, "{}", connective("oneof", terms)),
-            Effect::Imply(lhs, rhs) => {
-                write!(
-                    f,
-                    "(when {} {})",
-                    shift(&lhs.to_string()),
-                    shift(&rhs.to_string())
-                )
-            }
+            Effect::And(terms) => write!(f, "{}", connective("and", terms.iter().map(shift))),
+            Effect::Or(terms) => write!(f, "{}", connective("or", terms.iter().map(shift))),
+            Effect::Xor(terms) => write!(f, "{}", connective("oneof", terms.iter().map(shift))),
+            Effect::Imply(guard, body) => write!(f, "(when {} {})", shift(guard), shift(body)),
             Effect::Exists(vars, inner) => {
                 write!(f, "(exists ({}) {})", format_typed_list(vars), shift(inner))
             }
             Effect::ForAll(vars, inner) => {
                 write!(f, "(forall ({}) {})", format_typed_list(vars), shift(inner))
             }
-            Effect::Probabilistic(probability, terms) => {
-                write!(f, "(probabilistic {} {})", probability, shift(terms))
+            Effect::Probabilistic(branches) => {
+                let terms = branches
+                    .iter()
+                    .map(|(probability, effect)| format!("{} {}", probability, shift(effect)));
+                write!(f, "{}", connective("probabilistic", terms))
             }
             Effect::Equals(lhs, rhs) => write!(f, "(= {} {})", lhs, rhs),
         }

@@ -112,17 +112,20 @@ impl<'a> Transpiler<'a> {
                     Effect::Or(instances)
                 };
             }
-            Effect::Not(f) | Effect::Probabilistic(_, f) => {
-                Self::expand_quantified_effects(f, problem, type_checker)
-            }
+            Effect::Not(f) => Self::expand_quantified_effects(f, problem, type_checker),
             Effect::And(fs) | Effect::Or(fs) | Effect::Xor(fs) => {
                 for f in fs.iter_mut() {
                     Self::expand_quantified_effects(f, problem, type_checker);
                 }
             }
-            Effect::Imply(lhs, rhs) => {
-                Self::expand_quantified_effects(lhs, problem, type_checker);
-                Self::expand_quantified_effects(rhs, problem, type_checker);
+            Effect::Imply(guard, body) => {
+                Self::expand_quantifiers(guard, problem, type_checker);
+                Self::expand_quantified_effects(body, problem, type_checker);
+            }
+            Effect::Probabilistic(branches) => {
+                for (_, effect) in branches.iter_mut() {
+                    Self::expand_quantified_effects(effect, problem, type_checker);
+                }
             }
             Effect::Empty | Effect::Atom(_) | Effect::Equals(_, _) => {}
         }

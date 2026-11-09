@@ -93,13 +93,13 @@ impl<'a> Parser<'a> {
                             Err(ParsingError::Syntactic(error))
                         }
                     },
-                    // Implication
+                    // Conditional effect: a precondition guards an effect
                     Token::Operator(OperationType::Implication) => {
-                        let lhs = self.parse_effect()?;
-                        let rhs = self.parse_effect()?;
+                        let guard = self.parse_precondition()?;
+                        let body = self.parse_effect()?;
                         match self.tokenizer.get_token()? {
                             Token::Punctuator(PunctuationType::RParentheses) => {
-                                Ok(Effect::Imply(Box::new(lhs), Box::new(rhs)))
+                                Ok(Effect::Imply(Box::new(guard), Box::new(body)))
                             }
                             token => {
                                 let error = SyntacticError {
@@ -169,14 +169,14 @@ impl<'a> Parser<'a> {
                             Err(ParsingError::Syntactic(error))
                         }
                     },
-                    // Stochastic Operations (represented as the And of Probabilistic branches)
+                    // Probabilistic effect: every probability is followed by its branch
                     Token::Operator(OperationType::Probabilistic) => {
                         let mut branches = vec![];
                         loop {
                             match self.tokenizer.get_token()? {
                                 // closing paren ends the block
                                 Token::Punctuator(PunctuationType::RParentheses) => {
-                                    return Ok(Effect::And(branches));
+                                    return Ok(Effect::Probabilistic(branches));
                                 }
                                 // a probability, immediately followed by its effect
                                 Token::Number(probability) => {
@@ -202,10 +202,7 @@ impl<'a> Parser<'a> {
                                         };
                                         return Err(ParsingError::Syntactic(error));
                                     }
-                                    branches.push(Box::new(Effect::Probabilistic(
-                                        probability,
-                                        Box::new(f),
-                                    )));
+                                    branches.push((probability, Box::new(f)));
                                 }
                                 token => {
                                     let error = SyntacticError {

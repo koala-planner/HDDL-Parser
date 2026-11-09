@@ -64,15 +64,6 @@ mod tests {
         assert!(!double_negation.is_simple_conjunction());
     }
 
-    // #[test]
-    // pub fn probabilistic_not_conjunction_test() {
-    //     let probabilistic = Precondition::And(vec![
-    //         Box::new(Precondition::Probabilistic(NumberType::Real(0.5), atom("p_1"))),
-    //         Box::new(Precondition::Probabilistic(NumberType::Real(0.5), atom("p_2"))),
-    //     ]);
-    //     assert!(!probabilistic.is_simple_conjunction());
-    // }
-
     #[test]
     pub fn quantified_not_conjunction_test() {
         let var = Symbol::new("x", TokenPosition { line: 0 }, None, None);

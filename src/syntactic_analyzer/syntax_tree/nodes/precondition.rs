@@ -7,8 +7,7 @@ use crate::transpiler::format_typed_list;
 
 use super::*;
 
-// a formula in disjunctive normal form: a disjunction of cubes, each a
-// conjunction of literals. Transient computation result (never serialized).
+// a formula in disjunctive normal form: a disjunction of cubes
 #[derive(Clone, Debug)]
 pub struct DNFFormula<'a> {
     pub cubes: Vec<Cube<'a>>,

@@ -118,18 +118,22 @@ fn replace_effect_equals<'a>(effect: &mut Effect<'a>, name: &'a str) {
             *effect = Effect::Atom(equal_predicate(name, lhs, rhs));
         }
         Effect::Empty | Effect::Atom(_) => {}
-        Effect::Not(inner)
-        | Effect::Probabilistic(_, inner)
-        | Effect::Exists(_, inner)
-        | Effect::ForAll(_, inner) => replace_effect_equals(inner, name),
+        Effect::Not(inner) | Effect::Exists(_, inner) | Effect::ForAll(_, inner) => {
+            replace_effect_equals(inner, name)
+        }
         Effect::And(terms) | Effect::Or(terms) | Effect::Xor(terms) => {
             for term in terms.iter_mut() {
                 replace_effect_equals(term, name);
             }
         }
-        Effect::Imply(lhs, rhs) => {
-            replace_effect_equals(lhs, name);
-            replace_effect_equals(rhs, name);
+        Effect::Imply(guard, body) => {
+            replace_equals(guard, name);
+            replace_effect_equals(body, name);
+        }
+        Effect::Probabilistic(branches) => {
+            for (_, effect) in branches.iter_mut() {
+                replace_effect_equals(effect, name);
+            }
         }
     }
 }

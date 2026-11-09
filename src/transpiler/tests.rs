@@ -177,6 +177,14 @@ pub fn action_display_round_trip_test() {
 	 :effect (forall (?y) (when (at ?y) (not (at ?y))))
 	)
 
+	(:action flip
+	 :parameters (?x - block)
+	 :effect (probabilistic
+	 	0.8 (holding ?x)
+	 	0.2 (not (clear ?x))
+	 )
+	)
+
 )",
     );
 }
@@ -525,8 +533,8 @@ pub fn untyping_test() {
             vars.iter()
                 .all(|x| { x.symbol_type.is_none() && x.type_pos.is_none() })
         );
-        if let Effect::Imply(lhs, rhs) = &**body {
-            if let Effect::Atom(typing) = &**lhs {
+        if let Effect::Imply(guard, rhs) = &**body {
+            if let Precondition::Atom(typing) = &**guard {
                 assert_eq!(typing.name, "location");
                 assert_eq!(
                     typing.variables,
@@ -812,15 +820,20 @@ pub fn compile_equality_test() {
         },
         other => panic!("unexpected precondition {other:?}"),
     }
-    // the rewrite reaches inside effect conditions
+    // the rewrite reaches the guard of the conditional effect
     let effect = result.domain.actions[0].effects.as_ref().unwrap();
     let mut rewritten = false;
     let mut leftover_equals = false;
     effect.any_subformula(&mut |f| {
-        match f {
-            Effect::Atom(predicate) if predicate.name == "EQUAL" => rewritten = true,
-            Effect::Equals(_, _) => leftover_equals = true,
-            _ => {}
+        if let Effect::Imply(guard, _) = f {
+            guard.any_subformula(&mut |g| {
+                match g {
+                    Precondition::Atom(predicate) if predicate.name == "EQUAL" => rewritten = true,
+                    Precondition::Equals(_, _) => leftover_equals = true,
+                    _ => {}
+                }
+                false
+            });
         }
         false
     });

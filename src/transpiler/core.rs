@@ -138,9 +138,16 @@ impl<'a> Transpiler<'a> {
             || preconditions.iter().any(|formula| {
                 formula.any_subformula(&mut |f| matches!(f, Precondition::Equals(_, _)))
             })
-            || effects
-                .iter()
-                .any(|effect| effect.any_subformula(&mut |f| matches!(f, Effect::Equals(_, _))));
+            || effects.iter().any(|effect| {
+                effect.any_subformula(&mut |f| match f {
+                    Effect::Equals(_, _) => true,
+                    // the guard of a conditional effect is a precondition
+                    Effect::Imply(guard, _) => {
+                        guard.any_subformula(&mut |g| matches!(g, Precondition::Equals(_, _)))
+                    }
+                    _ => false,
+                })
+            });
         drop(preconditions);
         drop(effects);
 

@@ -850,28 +850,60 @@ mod tests {
                 assert_eq!(ast.actions.len(), 1);
                 let action = &ast.actions[0];
                 assert_eq!(action.name, "a_1");
-                // a probabilistic block parses to the And of its Probabilistic branches
-                match &action.effects.as_ref().unwrap() {
-                    Effect::And(branches) => {
+                let effect = action.effects.as_ref().unwrap();
+                assert!(!effect.is_simple_conjunction());
+                // a probabilistic block parses to one node holding every branch
+                match effect {
+                    Effect::Probabilistic(branches) => {
                         assert_eq!(branches.len(), 2);
                         // branch 1: 0.8 (and (not (at p_2 p_3)) (at p_2))
-                        if let Effect::Probabilistic(probability, effect) = branches[0].as_ref() {
-                            assert_eq!(*probability, NumberType::Real(0.8));
-                            if let Effect::And(conj) = effect.as_ref() {
-                                assert_eq!(conj.len(), 2);
-                                if let Effect::Not(inner) = conj[0].as_ref() {
-                                    if let Effect::Atom(pred) = inner.as_ref() {
-                                        assert_eq!(pred.name, "at");
-                                        assert_eq!(pred.variables.len(), 2);
-                                        assert_eq!(pred.variables[0].name, "p_2");
-                                        assert_eq!(pred.variables[1].name, "p_3");
-                                    } else {
-                                        panic!("wrong formula")
-                                    }
+                        let (probability, branch) = &branches[0];
+                        assert_eq!(*probability, NumberType::Real(0.8));
+                        if let Effect::And(conj) = branch.as_ref() {
+                            assert_eq!(conj.len(), 2);
+                            if let Effect::Not(inner) = conj[0].as_ref() {
+                                if let Effect::Atom(pred) = inner.as_ref() {
+                                    assert_eq!(pred.name, "at");
+                                    assert_eq!(pred.variables.len(), 2);
+                                    assert_eq!(pred.variables[0].name, "p_2");
+                                    assert_eq!(pred.variables[1].name, "p_3");
                                 } else {
                                     panic!("wrong formula")
                                 }
-                                if let Effect::Atom(pred) = conj[1].as_ref() {
+                            } else {
+                                panic!("wrong formula")
+                            }
+                            if let Effect::Atom(pred) = conj[1].as_ref() {
+                                assert_eq!(pred.name, "at");
+                                assert_eq!(pred.variables.len(), 1);
+                                assert_eq!(pred.variables[0].name, "p_2");
+                            } else {
+                                panic!("wrong formula")
+                            }
+                        } else {
+                            panic!("wrong formula")
+                        }
+
+                        // branch 2: 0.2 (probabilistic 0.5 (hold p_2 p_3) 0.5 (not (at p_2)))
+                        let (probability, branch) = &branches[1];
+                        assert_eq!(*probability, NumberType::Real(0.2));
+                        // the nested probabilistic is itself one node of branches
+                        if let Effect::Probabilistic(nested) = branch.as_ref() {
+                            assert_eq!(nested.len(), 2);
+                            let (p, e) = &nested[0];
+                            assert_eq!(*p, NumberType::Real(0.5));
+                            if let Effect::Atom(pred) = e.as_ref() {
+                                assert_eq!(pred.name, "hold");
+                                assert_eq!(pred.variables.len(), 2);
+                                assert_eq!(pred.variables[0].name, "p_2");
+                                assert_eq!(pred.variables[1].name, "p_3");
+                            } else {
+                                panic!("wrong formula")
+                            }
+                            let (p, e) = &nested[1];
+                            assert_eq!(*p, NumberType::Real(0.5));
+                            if let Effect::Not(inner) = e.as_ref() {
+                                if let Effect::Atom(pred) = inner.as_ref() {
                                     assert_eq!(pred.name, "at");
                                     assert_eq!(pred.variables.len(), 1);
                                     assert_eq!(pred.variables[0].name, "p_2");
@@ -882,49 +914,50 @@ mod tests {
                                 panic!("wrong formula")
                             }
                         } else {
-                            panic!("expected a probability branch")
+                            panic!("expected nested probabilistic")
                         }
+                    }
+                    _ => panic!("wrong formula"),
+                }
+            }
+            _ => panic!("parsing errors"),
+        }
+    }
 
-                        // branch 2: 0.2 (probabilistic 0.5 (hold p_2 p_3) 0.5 (not (at p_2)))
-                        if let Effect::Probabilistic(probability, effect) = branches[1].as_ref() {
-                            assert_eq!(*probability, NumberType::Real(0.2));
-                            // the nested probabilistic is itself an And of Probabilistic
-                            if let Effect::And(nested) = effect.as_ref() {
-                                assert_eq!(nested.len(), 2);
-                                if let Effect::Probabilistic(p, e) = nested[0].as_ref() {
-                                    assert_eq!(*p, NumberType::Real(0.5));
-                                    if let Effect::Atom(pred) = e.as_ref() {
-                                        assert_eq!(pred.name, "hold");
-                                        assert_eq!(pred.variables.len(), 2);
-                                        assert_eq!(pred.variables[0].name, "p_2");
-                                        assert_eq!(pred.variables[1].name, "p_3");
-                                    } else {
-                                        panic!("wrong formula")
-                                    }
-                                } else {
-                                    panic!("expected a probability branch")
+    #[test]
+    pub fn conditional_effect_parsing_test() {
+        let program = String::from(
+            "(define (domain bal)
+                (:action a_1
+                :parameters (p_1 p_2 - t1)
+                :precondition (at p_1)
+                :effect (when (not (at p_1)) (at p_2))
+                )
+            )",
+        )
+        .into_bytes();
+        let lexer = LexicalAnalyzer::new(&program);
+        match Parser::new(lexer).parse() {
+            Ok(AbstractSyntaxTree::Domain(ast)) => {
+                // the guard is a precondition, the body an effect
+                match &ast.actions[0].effects {
+                    Some(Effect::Imply(guard, body)) => {
+                        match guard.as_ref() {
+                            Precondition::Not(inner) => match inner.as_ref() {
+                                Precondition::Atom(pred) => {
+                                    assert_eq!(pred.name, "at");
+                                    assert_eq!(pred.variables[0].name, "p_1");
                                 }
-                                if let Effect::Probabilistic(p, e) = nested[1].as_ref() {
-                                    assert_eq!(*p, NumberType::Real(0.5));
-                                    if let Effect::Not(inner) = e.as_ref() {
-                                        if let Effect::Atom(pred) = inner.as_ref() {
-                                            assert_eq!(pred.name, "at");
-                                            assert_eq!(pred.variables.len(), 1);
-                                            assert_eq!(pred.variables[0].name, "p_2");
-                                        } else {
-                                            panic!("wrong formula")
-                                        }
-                                    } else {
-                                        panic!("wrong formula")
-                                    }
-                                } else {
-                                    panic!("expected a probability branch")
-                                }
-                            } else {
-                                panic!("expected nested probabilistic")
+                                _ => panic!("wrong guard"),
+                            },
+                            _ => panic!("wrong guard"),
+                        }
+                        match body.as_ref() {
+                            Effect::Atom(pred) => {
+                                assert_eq!(pred.name, "at");
+                                assert_eq!(pred.variables[0].name, "p_2");
                             }
-                        } else {
-                            panic!("expected a probability branch")
+                            _ => panic!("wrong body"),
                         }
                     }
                     _ => panic!("wrong formula"),
