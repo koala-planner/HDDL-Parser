@@ -98,7 +98,9 @@ impl<'a> Transpiler<'a> {
         leak(fresh)
     }
 
-    // recompute the requirement flags from the actual content
+    // recomputes the requirement flags from the actual content: a flag is
+    // added when its construct is used and no declared flag covers it, and
+    // dropped (from the domain and the problem) when the construct is absent.
     pub(crate) fn refresh_requirements(&mut self) {
         let program = &mut self.program;
         let mut preconditions: Vec<&Precondition> = vec![];
@@ -111,16 +113,29 @@ impl<'a> Transpiler<'a> {
             preconditions.extend(method.precondition.iter());
         }
         preconditions.extend(program.problem.iter().flat_map(|p| p.goal.iter()));
+        let any_precondition = |predicate: fn(&Precondition) -> bool| {
+            preconditions
+                .iter()
+                .any(|formula| formula.any_subformula(&mut |f| predicate(f)))
+        };
+        let any_effect = |predicate: fn(&Effect) -> bool| {
+            effects
+                .iter()
+                .any(|effect| effect.any_subformula(&mut |f| predicate(f)))
+        };
 
-        let has_forall = preconditions.iter().any(|formula| {
-            formula.any_subformula(&mut |f| matches!(f, Precondition::ForAll(_, _)))
+        let has_forall = any_precondition(|f| matches!(f, Precondition::ForAll(_, _)));
+        let has_exists = any_precondition(|f| matches!(f, Precondition::Exists(_, _)));
+        let has_negative = any_precondition(|f| matches!(f, Precondition::Not(_)));
+        let has_disjunction = any_precondition(|f| {
+            matches!(
+                f,
+                Precondition::Or(_) | Precondition::Xor(_) | Precondition::Imply(_, _)
+            )
         });
-        let has_exists = preconditions.iter().any(|formula| {
-            formula.any_subformula(&mut |f| matches!(f, Precondition::Exists(_, _)))
-        });
-        let has_negative = preconditions
-            .iter()
-            .any(|formula| formula.any_subformula(&mut |f| matches!(f, Precondition::Not(_))));
+        let has_conditional =
+            any_effect(|f| matches!(f, Effect::Imply(_, _) | Effect::ForAll(_, _)));
+        let has_probabilistic = any_effect(|f| matches!(f, Effect::Probabilistic(_)));
         let has_constraints = program
             .domain
             .methods
@@ -135,54 +150,107 @@ impl<'a> Transpiler<'a> {
             )
             .any(|constraints| !constraints.is_empty());
         let has_equality = has_constraints
-            || preconditions.iter().any(|formula| {
-                formula.any_subformula(&mut |f| matches!(f, Precondition::Equals(_, _)))
-            })
-            || effects.iter().any(|effect| {
-                effect.any_subformula(&mut |f| match f {
-                    Effect::Equals(_, _) => true,
-                    // the guard of a conditional effect is a precondition
-                    Effect::Imply(guard, _) => {
-                        guard.any_subformula(&mut |g| matches!(g, Precondition::Equals(_, _)))
-                    }
-                    _ => false,
-                })
+            || any_precondition(|f| matches!(f, Precondition::Equals(_, _)))
+            || any_effect(|f| match f {
+                Effect::Equals(_, _) => true,
+                // the guard of a conditional effect is a precondition
+                Effect::Imply(guard, _) => {
+                    guard.any_subformula(&mut |g| matches!(g, Precondition::Equals(_, _)))
+                }
+                _ => false,
             });
+        let has_hierarchy = !program.domain.compound_tasks.is_empty()
+            || !program.domain.methods.is_empty()
+            || program
+                .problem
+                .as_ref()
+                .is_some_and(|p| p.init_tn.is_some());
+        let has_method_preconditions = program
+            .domain
+            .methods
+            .iter()
+            .any(|method| method.precondition.is_some());
+        // numerics: action costs cover a domain that only increases total-cost
+        // by a constant or a fluent and, at most, minimises it; anything else
+        // needs numeric fluents
+        let is_cost_increase = |f: &Effect| {
+            matches!(
+                f,
+                Effect::Numeric(
+                    AssignmentOperator::Increase,
+                    fluent,
+                    NumericExpr::Number(_) | NumericExpr::Fluent(_)
+                ) if fluent.name == "total-cost"
+            )
+        };
+        let has_numeric_effect = any_effect(|f| matches!(f, Effect::Numeric(_, _, _)));
+        let exceeds_action_costs = effects.iter().any(|effect| {
+            effect.any_subformula(&mut |f| {
+                matches!(f, Effect::Numeric(_, _, _)) && !is_cost_increase(f)
+            })
+        }) || program.problem.as_ref().is_some_and(|p| {
+            p.metric.as_ref().is_some_and(|metric| {
+                !matches!(metric, Metric::Minimize(NumericExpr::Fluent(f)) if f.name == "total-cost")
+            })
+        });
+        let uses_numerics = has_numeric_effect
+            || !program.domain.functions.is_empty()
+            || program
+                .problem
+                .as_ref()
+                .is_some_and(|p| p.init_values.is_some() || p.metric.is_some());
         drop(preconditions);
         drop(effects);
 
+        let uses = [
+            (RequirementType::UniversalPreconditions, has_forall),
+            (RequirementType::ExistentialPreconditions, has_exists),
+            (RequirementType::NegativePreconditions, has_negative),
+            (RequirementType::DisjunctivePreconditions, has_disjunction),
+            (RequirementType::ConditionalEffects, has_conditional),
+            (RequirementType::ProbabilisticEffects, has_probabilistic),
+            (RequirementType::Equality, has_equality),
+            (RequirementType::Hierarchy, has_hierarchy),
+            (
+                RequirementType::MethodPreconditions,
+                has_method_preconditions,
+            ),
+            (
+                RequirementType::ActionCosts,
+                uses_numerics && !exceeds_action_costs,
+            ),
+            (
+                RequirementType::NumericFluents,
+                uses_numerics && exceeds_action_costs,
+            ),
+        ];
         let requirements = &mut program.domain.requirements;
-        if has_forall && !requirements.contains(&RequirementType::UniversalPreconditions) {
-            requirements.push(RequirementType::UniversalPreconditions);
+        for (flag, used) in uses {
+            let covered = requirements.iter().any(|declared| declared.covers(flag));
+            if used && !covered {
+                requirements.push(flag);
+            }
         }
-        if !has_forall {
-            requirements.retain(|r| *r != RequirementType::UniversalPreconditions);
-        }
-        if has_exists && !requirements.contains(&RequirementType::ExistentialPreconditions) {
-            requirements.push(RequirementType::ExistentialPreconditions);
-        }
-        if !has_exists {
-            requirements.retain(|r| *r != RequirementType::ExistentialPreconditions);
-        }
-        if has_negative && !requirements.contains(&RequirementType::NegativePreconditions) {
-            requirements.push(RequirementType::NegativePreconditions);
-        }
-        if has_equality && !requirements.contains(&RequirementType::Equality) {
-            requirements.push(RequirementType::Equality);
-        }
-        if !has_equality {
-            requirements.retain(|r| *r != RequirementType::Equality);
+        // the numeric spellings are one family: with no numerics all of them go,
+        // otherwise the declared one stays whichever fragment is in use
+        let unused: Vec<RequirementType> = uses
+            .iter()
+            .filter(|(_, used)| !used)
+            .map(|(flag, _)| *flag)
+            .filter(|flag| !(uses_numerics && RequirementType::Fluents.covers(*flag)))
+            .collect();
+        requirements.retain(|declared| !unused.contains(declared));
+        if !uses_numerics {
+            requirements.retain(|declared| *declared != RequirementType::Fluents);
         }
         if let Some(problem) = program.problem.as_mut() {
-            if !has_forall {
+            problem
+                .requirements
+                .retain(|declared| !unused.contains(declared));
+            if !uses_numerics {
                 problem
                     .requirements
-                    .retain(|r| *r != RequirementType::UniversalPreconditions);
-            }
-            if !has_equality {
-                problem
-                    .requirements
-                    .retain(|r| *r != RequirementType::Equality);
+                    .retain(|declared| *declared != RequirementType::Fluents);
             }
         }
     }

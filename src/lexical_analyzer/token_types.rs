@@ -106,6 +106,7 @@ pub enum RequirementType {
     Hierarchy,
     TypedObjects,
     NegativePreconditions,
+    DisjunctivePreconditions,
     UniversalPreconditions,
     ExistentialPreconditions,
     QuantifiedPreconditions,
@@ -120,6 +121,27 @@ pub enum RequirementType {
     Fluents,
     NumericFluents,
     ActionCosts,
+    // temporal fragment: recognised as flags, durative actions are not parsed
+    DurativeActions,
+    DurationInequalities,
+    ContinuousEffects,
+}
+
+impl RequirementType {
+    // whether declaring this requirement also declares `other`.
+    pub fn covers(&self, other: RequirementType) -> bool {
+        *self == other
+            || matches!(
+                (self, other),
+                (
+                    RequirementType::Fluents,
+                    RequirementType::NumericFluents | RequirementType::ActionCosts
+                ) | (
+                    RequirementType::NumericFluents,
+                    RequirementType::ActionCosts
+                )
+            )
+    }
 }
 
 impl fmt::Display for RequirementType {
@@ -129,6 +151,7 @@ impl fmt::Display for RequirementType {
             RequirementType::Hierarchy => ":hierarchy",
             RequirementType::TypedObjects => ":typing",
             RequirementType::NegativePreconditions => ":negative-preconditions",
+            RequirementType::DisjunctivePreconditions => ":disjunctive-preconditions",
             RequirementType::UniversalPreconditions => ":universal-preconditions",
             RequirementType::ExistentialPreconditions => ":existential-preconditions",
             RequirementType::QuantifiedPreconditions => ":quantified-preconditions",
@@ -141,6 +164,9 @@ impl fmt::Display for RequirementType {
             RequirementType::Fluents => ":fluents",
             RequirementType::NumericFluents => ":numeric-fluents",
             RequirementType::ActionCosts => ":action-costs",
+            RequirementType::DurativeActions => ":durative-actions",
+            RequirementType::DurationInequalities => ":duration-inequalities",
+            RequirementType::ContinuousEffects => ":continuous-effects",
         };
         write!(f, "{}", requirement)
     }

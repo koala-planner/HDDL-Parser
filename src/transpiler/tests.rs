@@ -6,7 +6,7 @@ use crate::{
     AbstractSyntaxTree, Action, AssignmentOperator, Effect, HDDLProgram, LexicalAnalyzer,
     NumericExpr, Parser,
     Precondition::{self, Atom},
-    Predicate, Subtask, Symbol, TokenPosition,
+    Predicate, RequirementType, Subtask, Symbol, TokenPosition,
 };
 
 fn symbol(name: &'static str) -> Symbol<'static> {
@@ -1345,4 +1345,148 @@ pub fn numeric_problem_pipeline_test() {
     let reimported = HDDLProgram::from_json(&json).unwrap();
     reimported.verify().unwrap();
     assert_eq!(Transpiler::new(reimported).to_json(), json);
+}
+
+// the domain and problem requirement flags after a refresh
+fn refreshed_requirements(
+    domain: &str,
+    problem: Option<&str>,
+) -> (Vec<RequirementType>, Vec<RequirementType>) {
+    let domain = domain.as_bytes().to_vec();
+    let problem = problem.map(|p| p.as_bytes().to_vec());
+    let mut transpiler = Transpiler::from_hddl(&domain, problem.as_ref()).unwrap();
+    transpiler.refresh_requirements();
+    let problem_requirements = transpiler
+        .program
+        .problem
+        .as_ref()
+        .map(|p| p.requirements.clone())
+        .unwrap_or_default();
+    (transpiler.program.domain.requirements, problem_requirements)
+}
+
+#[test]
+pub fn refresh_adds_flags_for_used_constructs_test() {
+    let (domain, _) = refreshed_requirements(
+        "(define (domain d)
+            (:requirements :typing)
+            (:types t)
+            (:predicates (p) (q ?x - t))
+            (:task abstract :parameters ())
+            (:method m
+             :parameters ()
+             :task (abstract)
+             :precondition (not (p))
+             :subtasks (act)
+            )
+            (:action act
+             :parameters ()
+             :precondition (and (or (p) (exists (?x - t) (q ?x))) (forall (?x - t) (q ?x)))
+             :effect (and (when (p) (not (p))) (probabilistic 0.5 (p)))
+            )
+        )",
+        None,
+    );
+    let expected = [
+        RequirementType::TypedObjects,
+        RequirementType::UniversalPreconditions,
+        RequirementType::ExistentialPreconditions,
+        RequirementType::NegativePreconditions,
+        RequirementType::DisjunctivePreconditions,
+        RequirementType::ConditionalEffects,
+        RequirementType::ProbabilisticEffects,
+        RequirementType::Hierarchy,
+        RequirementType::MethodPreconditions,
+    ];
+    assert_eq!(domain, expected);
+}
+
+#[test]
+pub fn refresh_drops_flags_for_absent_constructs_test() {
+    // every declared flag but :typing is unused, in the domain and the problem
+    let (domain, problem) = refreshed_requirements(
+        "(define (domain d)
+            (:requirements :typing :existential-preconditions :equality :fluents :action-costs :hierarchy :method-preconditions)
+            (:predicates (p))
+            (:action act :parameters () :precondition (p) :effect (not (p)))
+        )",
+        Some(
+            "(define (problem p) (:domain d)
+            (:requirements :typing :equality :action-costs)
+            (:init (p))
+        )",
+        ),
+    );
+    assert_eq!(domain, [RequirementType::TypedObjects]);
+    assert_eq!(problem, [RequirementType::TypedObjects]);
+}
+
+#[test]
+pub fn refresh_picks_the_numeric_flag_test() {
+    let cost_domain = "(define (domain d)
+        (:requirements :typing)
+        (:predicates (p))
+        (:functions (total-cost) (toll))
+        (:action act :parameters () :effect (and (p) (increase (total-cost) (toll))))
+    )";
+    let cost_problem = "(define (problem p) (:domain d)
+        (:init (= (total-cost) 0) (= (toll) 3))
+        (:metric minimize (total-cost))
+    )";
+    // increasing total-cost by constants or fluents, and minimising it, is action costs
+    let (domain, _) = refreshed_requirements(cost_domain, Some(cost_problem));
+    assert_eq!(
+        domain,
+        [RequirementType::TypedObjects, RequirementType::ActionCosts]
+    );
+    // a declared numeric flag that covers the usage stays as written
+    let (domain, _) = refreshed_requirements(
+        &cost_domain.replace(":typing", ":typing :numeric-fluents"),
+        Some(cost_problem),
+    );
+    assert_eq!(
+        domain,
+        [
+            RequirementType::TypedObjects,
+            RequirementType::NumericFluents
+        ]
+    );
+    // any other update, or any other metric, needs numeric fluents
+    let (domain, _) = refreshed_requirements(
+        &cost_domain.replace("(increase (total-cost) (toll))", "(decrease (toll) 1)"),
+        Some(cost_problem),
+    );
+    assert_eq!(
+        domain,
+        [
+            RequirementType::TypedObjects,
+            RequirementType::NumericFluents
+        ]
+    );
+    let (domain, _) = refreshed_requirements(
+        cost_domain,
+        Some(&cost_problem.replace("minimize (total-cost)", "minimize (+ (total-cost) (toll))")),
+    );
+    assert_eq!(
+        domain,
+        [
+            RequirementType::TypedObjects,
+            RequirementType::NumericFluents
+        ]
+    );
+    // declared :action-costs is kept but no longer sufficient
+    let (domain, _) = refreshed_requirements(
+        &cost_domain
+            .replace(":typing", ":typing :action-costs")
+            .replace("(increase (total-cost) (toll))", "(decrease (toll) 1)"),
+        Some(cost_problem),
+    );
+    assert_eq!(
+        domain,
+        [
+            RequirementType::TypedObjects,
+            RequirementType::ActionCosts,
+            RequirementType::NumericFluents
+        ]
+    );
 }

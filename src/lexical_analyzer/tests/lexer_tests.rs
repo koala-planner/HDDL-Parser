@@ -315,12 +315,20 @@ mod lexer_test {
 
     #[test]
     pub fn numeric_requirement_recognition_test() {
-        let program = String::from(":fluents :numeric-fluents :action-costs\n").into_bytes();
+        let program = String::from(
+            ":fluents :numeric-fluents :action-costs :disjunctive-preconditions \
+             :durative-actions :duration-inequalities :continuous-effects\n",
+        )
+        .into_bytes();
         let lexer = LexicalAnalyzer::new(&program);
         for expected in [
             Token::Requirement(RequirementType::Fluents),
             Token::Requirement(RequirementType::NumericFluents),
             Token::Requirement(RequirementType::ActionCosts),
+            Token::Requirement(RequirementType::DisjunctivePreconditions),
+            Token::Requirement(RequirementType::DurativeActions),
+            Token::Requirement(RequirementType::DurationInequalities),
+            Token::Requirement(RequirementType::ContinuousEffects),
             Token::EOF,
         ] {
             assert_eq!(lexer.get_token().unwrap(), expected);

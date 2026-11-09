@@ -111,6 +111,18 @@ impl<'a> LexicalAnalyzer<'a> {
                             Ok(Token::Requirement(RequirementType::NumericFluents))
                         }
                         "action-costs" => Ok(Token::Requirement(RequirementType::ActionCosts)),
+                        "disjunctive-preconditions" => Ok(Token::Requirement(
+                            RequirementType::DisjunctivePreconditions,
+                        )),
+                        "durative-actions" => {
+                            Ok(Token::Requirement(RequirementType::DurativeActions))
+                        }
+                        "duration-inequalities" => {
+                            Ok(Token::Requirement(RequirementType::DurationInequalities))
+                        }
+                        "continuous-effects" => {
+                            Ok(Token::Requirement(RequirementType::ContinuousEffects))
+                        }
                         // Keywords
                         "requirements" => Ok(Token::Keyword(KeywordName::Requirements)),
                         "objects" => Ok(Token::Keyword(KeywordName::Objects)),
