@@ -175,7 +175,7 @@ pub fn p_undeclared_type_test() {
                         Err(d) => match d {
                             SemanticErrorType::UndefinedType(ty) => {
                                 assert_eq!(ty.symbol, "car");
-                                assert_eq!(ty.position.line, 6);
+                                assert_eq!(ty.position.line, 5);
                             }
                             _ => panic!(),
                         },
@@ -227,7 +227,7 @@ pub fn p_undefined_object_test() {
                         Err(d) => match d {
                             SemanticErrorType::UndefinedObject(undefined) => {
                                 assert_eq!(undefined.symbol, "x3");
-                                assert_eq!(undefined.position.line, 10);
+                                assert_eq!(undefined.position.line, 9);
                             }
                             token => panic!("{:?}", token),
                         },
@@ -340,7 +340,7 @@ pub fn p_cyclic_init_tn_ordering_test() {
                         }
                         Err(d) => match d {
                             SemanticErrorType::CyclicOrderingDeclaration(pos) => {
-                                assert_eq!(pos.line, 14);
+                                assert_eq!(pos.line, 13);
                             }
                             _ => panic!(),
                         },

@@ -46,7 +46,7 @@ pub fn basic_type_checking_test() {
                         assert_eq!(t_err.var_name, "?l1");
                         assert_eq!(t_err.found.unwrap(), "t2");
                         assert_eq!(t_err.expected.unwrap(), "t1");
-                        assert_eq!(t_err.position.line, 12);
+                        assert_eq!(t_err.position.line, 11);
                     }
                     _ => {
                         panic!("caught wrong error")
@@ -128,7 +128,7 @@ pub fn inconsistent_predicate_arity_test() {
                     assert_eq!(x.symbol, "at");
                     assert_eq!(x.expected_arity, 1);
                     assert_eq!(x.found_arity, 2);
-                    assert_eq!(x.position.line, 14)
+                    assert_eq!(x.position.line, 13)
                 }
                 _ => {
                     panic!()
@@ -179,7 +179,7 @@ pub fn inconsistent_subtask_arity_test() {
                     assert_eq!(x.symbol, "test1");
                     assert_eq!(x.expected_arity, 2);
                     assert_eq!(x.found_arity, 1);
-                    assert_eq!(x.position.line, 21);
+                    assert_eq!(x.position.line, 20);
                 }
                 Err(token) => panic!("{:?}", token),
                 Ok(_) => panic!("error not found"),
@@ -283,7 +283,7 @@ pub fn method_subtask_checking_test() {
                         assert_eq!(t_error.expected.unwrap(), "t2");
                         assert_eq!(t_error.found.unwrap(), "t6");
                         assert_eq!(t_error.var_name, "?l3");
-                        assert_eq!(t_error.position.line, 27);
+                        assert_eq!(t_error.position.line, 26);
                     }
                     any => {
                         panic!("{:?}", any)

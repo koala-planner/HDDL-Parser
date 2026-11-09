@@ -45,7 +45,7 @@ pub fn cyclic_method_ordering_test() {
                 }
                 Err(error) => match error {
                     SemanticErrorType::CyclicOrderingDeclaration(pos) => {
-                        assert_eq!(pos.line, 21);
+                        assert_eq!(pos.line, 20);
                     }
                     _ => {
                         panic!("caught wrong error")

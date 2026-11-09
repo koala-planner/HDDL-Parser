@@ -31,8 +31,8 @@ impl std::fmt::Display for WarningType {
             Self::NoPrimitiveRefinement(info) => {
                 write!(
                     f,
-                    "line {}: compound task {} does not have a primitive refinement",
-                    info.position.line, info.symbol
+                    "{}: compound task {} does not have a primitive refinement",
+                    info.position, info.symbol
                 )
             }
             Self::UnusedType(type_name) => {

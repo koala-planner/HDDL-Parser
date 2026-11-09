@@ -370,3 +370,58 @@ fn lsp_diagnostic_problem_without_domain_returns_empty_report() {
     server.shutdown();
     fs::remove_dir_all(temp_dir).unwrap();
 }
+
+#[test]
+fn lsp_diagnostic_range_covers_the_offending_token() {
+    let mut server = LspProcess::start();
+    server.initialize();
+    server.notify("initialized", json!({}));
+
+    let temp_dir = unique_temp_path("diagnostic-range");
+    fs::create_dir_all(&temp_dir).unwrap();
+    let domain_path = temp_dir.join("domain.hddl");
+    // tab-indented on purpose: LSP columns count a tab as one character
+    let domain_text = "(define (domain d)\n\t(:predicates (p ?x))\n\t(:action a\n\t\t:parameters (?x)\n\t\t:precondition (q ?x)\n\t\t:effect (p ?x)))\n";
+    fs::write(&domain_path, domain_text).unwrap();
+    let uri = file_uri(&domain_path);
+
+    server.notify(
+        "textDocument/didOpen",
+        json!({
+            "textDocument": {
+                "uri": uri,
+                "languageId": "hddl",
+                "version": 1,
+                "text": domain_text
+            }
+        }),
+    );
+
+    let response = server.request(
+        7,
+        "textDocument/diagnostic",
+        json!({
+            "textDocument": {
+                "uri": uri
+            }
+        }),
+    );
+
+    let items = response["result"]["items"].as_array().unwrap();
+    assert_eq!(items.len(), 1);
+    let character = domain_text.lines().nth(4).unwrap().find("(q").unwrap() + 1;
+    let range = &items[0]["range"];
+    assert_eq!(range["start"]["line"], 4);
+    assert_eq!(range["start"]["character"], character);
+    assert_eq!(range["end"]["line"], 4);
+    assert_eq!(range["end"]["character"], character + 1);
+    assert!(
+        items[0]["message"]
+            .as_str()
+            .unwrap()
+            .starts_with(&format!("[5:{}]:", character + 1))
+    );
+
+    server.shutdown();
+    fs::remove_dir_all(temp_dir).unwrap();
+}

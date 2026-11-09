@@ -46,7 +46,7 @@ pub fn primitive_refinement_test() {
                     match &sym_table.warnings[0] {
                         WarningType::NoPrimitiveRefinement(info) => {
                             assert_eq!(info.symbol, "abs_3");
-                            assert_eq!(info.position.line, 15);
+                            assert_eq!(info.position.line, 14);
                         }
                         _ => panic!(),
                     }

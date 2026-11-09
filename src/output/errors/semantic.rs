@@ -64,58 +64,58 @@ impl fmt::Display for SemanticErrorType {
             SemanticErrorType::UndefinedPredicate(undefined) => {
                 write!(
                     f,
-                    "line {}: predicate {} is not defined.",
-                    undefined.position.line, undefined.symbol
+                    "{}: predicate {} is not defined.",
+                    undefined.position, undefined.symbol
                 )
             }
             SemanticErrorType::UndefinedFunction(undefined) => {
                 write!(
                     f,
-                    "line {}: function {} is not defined.",
-                    undefined.position.line, undefined.symbol
+                    "{}: function {} is not defined.",
+                    undefined.position, undefined.symbol
                 )
             }
             SemanticErrorType::UndefinedType(undefined) => {
                 write!(
                     f,
-                    "line {}: type {} is not defined.",
-                    undefined.position.line, undefined.symbol
+                    "{}: type {} is not defined.",
+                    undefined.position, undefined.symbol
                 )
             }
             SemanticErrorType::UndefinedSubtask(undefined) => {
                 write!(
                     f,
-                    "line {}: subtask {} is not defined.",
-                    undefined.position.line, undefined.symbol
+                    "{}: subtask {} is not defined.",
+                    undefined.position, undefined.symbol
                 )
             }
             SemanticErrorType::UndefinedTask(undefined) => {
                 write!(
                     f,
-                    "line {}: task {} is not defined.",
-                    undefined.position.line, undefined.symbol
+                    "{}: task {} is not defined.",
+                    undefined.position, undefined.symbol
                 )
             }
             SemanticErrorType::UndefinedParameter(undefined) => {
                 write!(
                     f,
-                    "line {}: parameter {} is not defined.",
-                    undefined.position.line, undefined.symbol
+                    "{}: parameter {} is not defined.",
+                    undefined.position, undefined.symbol
                 )
             }
             SemanticErrorType::UndefinedObject(undefined) => {
                 write!(
                     f,
-                    "line {}: object {} is not defined.",
-                    undefined.position.line, undefined.symbol
+                    "{}: object {} is not defined.",
+                    undefined.position, undefined.symbol
                 )
             }
             // Inconsistency Error
             SemanticErrorType::InconsistentPredicateArity(ar_error) => {
                 write!(
                     f,
-                    "line {}: predicate {} takes {} parameters, but {} are given.",
-                    ar_error.position.line,
+                    "{}: predicate {} takes {} parameters, but {} are given.",
+                    ar_error.position,
                     ar_error.symbol,
                     ar_error.expected_arity,
                     ar_error.found_arity
@@ -124,8 +124,8 @@ impl fmt::Display for SemanticErrorType {
             SemanticErrorType::InconsistentFunctionArity(ar_error) => {
                 write!(
                     f,
-                    "line {}: function {} takes {} parameters, but {} are given.",
-                    ar_error.position.line,
+                    "{}: function {} takes {} parameters, but {} are given.",
+                    ar_error.position,
                     ar_error.symbol,
                     ar_error.expected_arity,
                     ar_error.found_arity
@@ -148,7 +148,7 @@ impl fmt::Display for SemanticErrorType {
                 write!(f, "Type hierarchy is cyclic.")
             }
             SemanticErrorType::CyclicOrderingDeclaration(pos) => {
-                write!(f, "line {}: task ordering is cyclic.", pos.line)
+                write!(f, "{}: task ordering is cyclic.", pos)
             }
         }
     }
@@ -166,8 +166,8 @@ impl fmt::Display for TypeError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "line {}: Type error for variable {}. ",
-            self.position.line, self.var_name
+            "{}: Type error for variable {}. ",
+            self.position, self.var_name
         )?;
         match (&self.expected, &self.found) {
             (Some(expected), Some(found)) => {
@@ -213,8 +213,8 @@ impl fmt::Display for DuplicateError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "'{}' is first defined in line {}, and then redefined in line {}.",
-            self.symbol, self.first_pos.line, self.second_pos.line
+            "'{}' is first defined at {}, and then redefined at {}.",
+            self.symbol, self.first_pos, self.second_pos
         )
     }
 }

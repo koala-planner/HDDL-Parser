@@ -11,7 +11,7 @@ pub fn cyclic_ordering_validation_test() {
         Err(err) => {
             if let hddl_analyzer::ParsingError::Semantic(x) = err {
                 if let SemanticErrorType::CyclicOrderingDeclaration(t) = x {
-                    assert_eq!(t.line, 56);
+                    assert_eq!(t.line, 55);
                 } else {
                     panic!("wrong error {:?}", x)
                 }
@@ -192,7 +192,7 @@ pub fn forgotten_entry_validation_test() {
         Ok(_) => panic!("error not found"),
         Err(err) => {
             if let hddl_analyzer::ParsingError::Syntactic(x) = err {
-                assert_eq!(x.position.line, 63);
+                assert_eq!(x.position.line, 62);
             } else {
                 panic!()
             }
@@ -208,7 +208,7 @@ pub fn forgotten_question_mark_validation_test() {
         Ok(_) => panic!("error not found"),
         Err(err) => {
             if let hddl_analyzer::ParsingError::Syntactic(x) = err {
-                assert_eq!(x.position.line, 63);
+                assert_eq!(x.position.line, 62);
             } else {
                 panic!()
             }

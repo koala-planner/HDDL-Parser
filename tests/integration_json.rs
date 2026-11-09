@@ -209,7 +209,8 @@ pub fn json_malformed_input() {
     match HDDLProgram::from_json("{ not json") {
         Err(ParsingError::JSON(error)) => {
             assert!(!error.to_string().is_empty());
-            assert!(error.line > 0);
+            assert_eq!(error.position.line, 0);
+            assert_eq!(error.position.column, 2);
         }
         other => panic!("expected a Json error, got {:?}", other.map(|_| ())),
     }

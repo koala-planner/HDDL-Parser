@@ -72,7 +72,7 @@ pub fn undefined_function_test() {
     match error {
         SemanticErrorType::UndefinedFunction(undefined) => {
             assert_eq!(undefined.symbol, "road-length");
-            assert_eq!(undefined.position.line, 5);
+            assert_eq!(undefined.position.line, 4);
         }
         other => panic!("{:?}", other),
     }
@@ -98,7 +98,7 @@ pub fn inconsistent_function_arity_test() {
             assert_eq!(arity.symbol, "road-length");
             assert_eq!(arity.expected_arity, 2);
             assert_eq!(arity.found_arity, 1);
-            assert_eq!(arity.position.line, 7);
+            assert_eq!(arity.position.line, 6);
         }
         other => panic!("{:?}", other),
     }
@@ -123,7 +123,7 @@ pub fn inconsistent_function_arg_type_test() {
             assert_eq!(type_error.var_name, "?l");
             assert_eq!(type_error.expected.as_deref(), Some("vehicle"));
             assert_eq!(type_error.found.as_deref(), Some("location"));
-            assert_eq!(type_error.position.line, 6);
+            assert_eq!(type_error.position.line, 5);
         }
         other => panic!("{:?}", other),
     }
@@ -145,7 +145,7 @@ pub fn undefined_fluent_argument_test() {
     match error {
         SemanticErrorType::UndefinedParameter(undefined) => {
             assert_eq!(undefined.symbol, "?w");
-            assert_eq!(undefined.position.line, 5);
+            assert_eq!(undefined.position.line, 4);
         }
         other => panic!("{:?}", other),
     }
@@ -177,8 +177,8 @@ pub fn duplicate_function_test() {
     match error {
         SemanticErrorType::DuplicateFunctionDeclaration(duplicate) => {
             assert_eq!(duplicate.symbol, "fuel");
-            assert_eq!(duplicate.first_pos.line, 3);
-            assert_eq!(duplicate.second_pos.line, 5);
+            assert_eq!(duplicate.first_pos.line, 2);
+            assert_eq!(duplicate.second_pos.line, 4);
         }
         other => panic!("{:?}", other),
     }
@@ -197,7 +197,7 @@ pub fn undefined_function_parameter_type_test() {
     match error {
         SemanticErrorType::UndefinedType(undefined) => {
             assert_eq!(undefined.symbol, "truck");
-            assert_eq!(undefined.position.line, 3);
+            assert_eq!(undefined.position.line, 2);
         }
         other => panic!("{:?}", other),
     }
@@ -271,7 +271,7 @@ pub fn undefined_fluent_in_problem_test() {
     match error {
         SemanticErrorType::UndefinedFunction(undefined) => {
             assert_eq!(undefined.symbol, "undeclared");
-            assert_eq!(undefined.position.line, 5);
+            assert_eq!(undefined.position.line, 4);
         }
         other => panic!("{:?}", other),
     }
@@ -285,7 +285,7 @@ pub fn inconsistent_fluent_arity_in_problem_test() {
             assert_eq!(arity.symbol, "road-length");
             assert_eq!(arity.expected_arity, 2);
             assert_eq!(arity.found_arity, 1);
-            assert_eq!(arity.position.line, 5);
+            assert_eq!(arity.position.line, 4);
         }
         other => panic!("{:?}", other),
     }
@@ -297,7 +297,7 @@ pub fn undefined_object_in_fluent_test() {
     match verify(NUMERIC_DOMAIN, Some(&problem)) {
         Err(SemanticErrorType::UndefinedObject(undefined)) => {
             assert_eq!(undefined.symbol, "c");
-            assert_eq!(undefined.position.line, 5);
+            assert_eq!(undefined.position.line, 4);
         }
         other => panic!("{:?}", other),
     }

@@ -50,8 +50,8 @@ pub fn objects_duplicate_test() {
                     match semantic_parser.verify_problem() {
                         Err(SemanticErrorType::DuplicateObjectDeclaration(x)) => {
                             assert_eq!(x.symbol, "a");
-                            assert_eq!(x.first_pos.line, 3);
-                            assert_eq!(x.second_pos.line, 6);
+                            assert_eq!(x.first_pos.line, 2);
+                            assert_eq!(x.second_pos.line, 5);
                         }
                         _ => panic!(),
                     }
@@ -125,8 +125,8 @@ pub fn predicates_duplicate_test() {
                 Err(error) => match error {
                     SemanticErrorType::DuplicatePredicateDeclaration(x) => {
                         assert_eq!(x.symbol, "pred_1");
-                        assert_eq!(x.first_pos.line, 4);
-                        assert_eq!(x.second_pos.line, 6)
+                        assert_eq!(x.first_pos.line, 3);
+                        assert_eq!(x.second_pos.line, 5)
                     }
                     _ => {
                         panic!("caught wrong error")
@@ -178,8 +178,8 @@ pub fn action_duplicate_test() {
                 Err(error) => match error {
                     SemanticErrorType::DuplicateActionDeclaration(x) => {
                         assert_eq!(x.symbol, "a_1");
-                        assert_eq!(x.first_pos.line, 7);
-                        assert_eq!(x.second_pos.line, 17);
+                        assert_eq!(x.first_pos.line, 6);
+                        assert_eq!(x.second_pos.line, 16);
                     }
                     token => {
                         panic!("{:?}", token)
@@ -221,8 +221,8 @@ pub fn parameter_duplicate_test() {
                 Err(error) => match error {
                     SemanticErrorType::DuplicateParameterDeclaration(x) => {
                         assert_eq!(x.symbol, "?p_1");
-                        assert_eq!(x.first_pos.line, 8);
-                        assert_eq!(x.second_pos.line, 8);
+                        assert_eq!(x.first_pos.line, 7);
+                        assert_eq!(x.second_pos.line, 7);
                     }
                     token => {
                         panic!("{:?}", token)
@@ -263,8 +263,8 @@ pub fn compound_task_duplicate_test() {
                 Err(error) => match error {
                     SemanticErrorType::DuplicateCompoundTaskDeclaration(x) => {
                         assert_eq!(x.symbol, "c_1");
-                        assert_eq!(x.first_pos.line, 2);
-                        assert_eq!(x.second_pos.line, 8);
+                        assert_eq!(x.first_pos.line, 1);
+                        assert_eq!(x.second_pos.line, 7);
                     }
                     _ => {
                         panic!("caught wrong error")
@@ -323,8 +323,8 @@ pub fn method_duplicate_test() {
                 Err(error) => match error {
                     SemanticErrorType::DuplicateMethodDeclaration(x) => {
                         assert_eq!(x.symbol, "m_1");
-                        assert_eq!(x.first_pos.line, 7);
-                        assert_eq!(x.second_pos.line, 22);
+                        assert_eq!(x.first_pos.line, 6);
+                        assert_eq!(x.second_pos.line, 21);
                     }
                     _ => {
                         panic!("caught wrong error")

@@ -37,8 +37,12 @@ impl From<JsonError> for ParsingError {
 impl From<serde_json::Error> for ParsingError {
     fn from(value: serde_json::Error) -> Self {
         ParsingError::JSON(JsonError {
-            line: value.line() as u32,
             message: value.to_string(),
+            position: TokenPosition {
+                line: (value.line() as u32).saturating_sub(1),
+                column: (value.column() as u32).saturating_sub(1),
+                length: 0,
+            },
         })
     }
 }

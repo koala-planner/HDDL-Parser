@@ -39,23 +39,23 @@ mod tests {
         match Parser::new(lexer).parse() {
             Ok(AbstractSyntaxTree::Problem(symbols)) => {
                 assert_eq!(symbols.objects[0].name, "a");
-                assert_eq!(symbols.objects[0].name_pos.line, 2);
+                assert_eq!(symbols.objects[0].name_pos.line, 1);
                 assert_eq!(symbols.objects[0].symbol_type.unwrap(), "d");
-                assert_eq!(symbols.objects[0].type_pos.unwrap().line, 4);
+                assert_eq!(symbols.objects[0].type_pos.unwrap().line, 3);
                 assert_eq!(symbols.objects[1].name, "b");
-                assert_eq!(symbols.objects[1].name_pos.line, 3);
+                assert_eq!(symbols.objects[1].name_pos.line, 2);
                 assert_eq!(symbols.objects[1].symbol_type.unwrap(), "d");
-                assert_eq!(symbols.objects[1].type_pos.unwrap().line, 4);
+                assert_eq!(symbols.objects[1].type_pos.unwrap().line, 3);
                 assert_eq!(symbols.objects[2].name, "c");
-                assert_eq!(symbols.objects[2].name_pos.line, 3);
+                assert_eq!(symbols.objects[2].name_pos.line, 2);
                 assert_eq!(symbols.objects[2].symbol_type.unwrap(), "d");
-                assert_eq!(symbols.objects[2].type_pos.unwrap().line, 4);
+                assert_eq!(symbols.objects[2].type_pos.unwrap().line, 3);
                 assert_eq!(symbols.objects[3].name, "s");
-                assert_eq!(symbols.objects[3].name_pos.line, 5);
+                assert_eq!(symbols.objects[3].name_pos.line, 4);
                 assert_eq!(symbols.objects[3].symbol_type.unwrap(), "f");
-                assert_eq!(symbols.objects[3].type_pos.unwrap().line, 5);
+                assert_eq!(symbols.objects[3].type_pos.unwrap().line, 4);
                 assert_eq!(symbols.objects[4].name, "t");
-                assert_eq!(symbols.objects[4].name_pos.line, 5);
+                assert_eq!(symbols.objects[4].name_pos.line, 4);
                 assert!(symbols.objects[4].symbol_type.is_none());
                 assert!(symbols.objects[4].type_pos.is_none());
             }
@@ -76,11 +76,11 @@ mod tests {
         match Parser::new(lexer).parse() {
             Ok(AbstractSyntaxTree::Problem(symbols)) => {
                 assert_eq!(symbols.objects[0].name, "a");
-                assert_eq!(symbols.objects[0].name_pos.line, 3);
+                assert_eq!(symbols.objects[0].name_pos.line, 2);
                 assert_eq!(symbols.objects[1].name, "b");
-                assert_eq!(symbols.objects[1].name_pos.line, 3);
+                assert_eq!(symbols.objects[1].name_pos.line, 2);
                 assert_eq!(symbols.objects[2].name, "c");
-                assert_eq!(symbols.objects[2].name_pos.line, 4);
+                assert_eq!(symbols.objects[2].name_pos.line, 3);
             }
             _ => panic!("parsing errors"),
         }
@@ -151,12 +151,12 @@ mod tests {
                                 ("?a_3", Some("t_2"))
                             ]
                         );
-                        assert_eq!(predicate.name_pos.line, 3);
+                        assert_eq!(predicate.name_pos.line, 2);
                     } else if predicate.name == "pred_2" {
                         assert_eq!(predicate.variables.len(), 0);
-                        assert_eq!(predicate.name_pos.line, 4);
+                        assert_eq!(predicate.name_pos.line, 3);
                     } else if predicate.name == "pred_3" {
-                        assert_eq!(predicate.name_pos.line, 5);
+                        assert_eq!(predicate.name_pos.line, 4);
                         let items: Vec<(&str, Option<&str>)> = predicate
                             .variables
                             .iter()
@@ -193,21 +193,21 @@ mod tests {
                 assert_eq!(ast.methods.len(), 1);
                 let method = &ast.methods[0];
                 assert_eq!(method.name.name, "m_1");
-                assert_eq!(method.name.name_pos.line, 2);
+                assert_eq!(method.name.name_pos.line, 1);
                 assert_eq!(method.task.name, "deliver_abs");
-                assert_eq!(method.task.name_pos.line, 4);
+                assert_eq!(method.task.name_pos.line, 3);
                 assert_eq!(method.task_terms.len(), 3);
                 assert_eq!(method.task_terms[0].name, "?p1");
                 assert_eq!(method.task_terms[1].name, "?l1");
                 assert_eq!(method.task_terms[2].name, "?l2");
                 assert_eq!(method.tn.subtasks[0].task.name, "pickup");
-                assert_eq!(method.tn.subtasks[0].task.name_pos.line, 6);
+                assert_eq!(method.tn.subtasks[0].task.name_pos.line, 5);
                 let term_pos_lines1: Vec<u32> = method.tn.subtasks[0]
                     .terms
                     .iter()
                     .map(|x| x.name_pos.line)
                     .collect();
-                assert_eq!(term_pos_lines1, vec![6, 6]);
+                assert_eq!(term_pos_lines1, vec![5, 5]);
                 assert_eq!(method.tn.subtasks[0].terms[0].name, "?p1");
                 assert_eq!(method.tn.subtasks[0].terms[1].name, "?l1");
                 assert_eq!(method.tn.subtasks[1].task.name, "deliver_abs");
@@ -216,8 +216,8 @@ mod tests {
                     .iter()
                     .map(|x| x.name_pos.line)
                     .collect();
-                assert_eq!(term_pos_lines2, vec![7, 7, 7]);
-                assert_eq!(method.tn.subtasks[1].task.name_pos.line, 7);
+                assert_eq!(term_pos_lines2, vec![6, 6, 6]);
+                assert_eq!(method.tn.subtasks[1].task.name_pos.line, 6);
                 assert_eq!(method.tn.subtasks[1].terms[0].name, "?p1");
                 assert_eq!(method.tn.subtasks[1].terms[1].name, "?l2");
                 assert_eq!(method.tn.subtasks[1].terms[2].name, "?l3");
@@ -269,7 +269,7 @@ mod tests {
                         match pred1 {
                             Precondition::Atom(pred) => {
                                 assert_eq!(pred.name, "at");
-                                assert_eq!(pred.name_pos.line, 5);
+                                assert_eq!(pred.name_pos.line, 4);
                                 assert_eq!(pred.variables.len(), 2);
                             }
                             _ => {
@@ -280,7 +280,7 @@ mod tests {
                         match pred2 {
                             Precondition::Atom(pred) => {
                                 assert_eq!(pred.name, "driver");
-                                assert_eq!(pred.name_pos.line, 6);
+                                assert_eq!(pred.name_pos.line, 5);
                                 assert_eq!(pred.variables.len(), 1);
                             }
                             _ => {
@@ -456,25 +456,25 @@ mod tests {
                     assert_eq!(tn.tn.subtasks[0].id.as_ref().unwrap().name, "task0");
                     assert_eq!(tn.tn.subtasks[0].task.name, "deliver");
                     assert_eq!(tn.tn.subtasks[0].terms.len(), 2);
-                    assert_eq!(tn.tn.subtasks[0].id.as_ref().unwrap().name_pos.line, 5);
+                    assert_eq!(tn.tn.subtasks[0].id.as_ref().unwrap().name_pos.line, 4);
                     let s0_term_lines: Vec<u32> = tn.tn.subtasks[0]
                         .terms
                         .iter()
                         .map(|x| x.name_pos.line)
                         .collect();
-                    assert_eq!(s0_term_lines, vec![5, 6]);
+                    assert_eq!(s0_term_lines, vec![4, 5]);
                     assert_eq!(tn.tn.subtasks[0].terms[0].name, "package_0");
                     assert_eq!(tn.tn.subtasks[0].terms[1].name, "city_loc_0");
                     assert_eq!(tn.tn.subtasks[1].id.as_ref().unwrap().name, "task1");
                     assert_eq!(tn.tn.subtasks[1].task.name, "retrieve");
                     assert_eq!(tn.tn.subtasks[1].terms.len(), 3);
-                    assert_eq!(tn.tn.subtasks[1].id.as_ref().unwrap().name_pos.line, 7);
+                    assert_eq!(tn.tn.subtasks[1].id.as_ref().unwrap().name_pos.line, 6);
                     let s1_term_lines: Vec<u32> = tn.tn.subtasks[1]
                         .terms
                         .iter()
                         .map(|x| x.name_pos.line)
                         .collect();
-                    assert_eq!(s1_term_lines, vec![7, 8, 8]);
+                    assert_eq!(s1_term_lines, vec![6, 7, 7]);
                     assert_eq!(tn.tn.subtasks[1].terms[0].name, "package_1");
                     assert_eq!(tn.tn.subtasks[1].terms[1].name, "city_loc_2");
                     assert_eq!(tn.tn.subtasks[1].terms[2].name, "truck3");
@@ -582,7 +582,7 @@ mod tests {
                 assert_eq!(ast.compound_tasks.len(), 1);
                 let c_1 = &ast.compound_tasks[0];
                 assert_eq!(c_1.name, "c_1");
-                assert_eq!(c_1.name_pos.line, 3);
+                assert_eq!(c_1.name_pos.line, 2);
                 let c1_term_names: Vec<&str> = c_1.parameters.iter().map(|x| x.name).collect();
                 let c1_term_types: Vec<&str> = c_1
                     .parameters
@@ -591,7 +591,7 @@ mod tests {
                     .collect();
                 assert_eq!(c1_term_names, vec!["p_1", "p_2", "p_3"]);
                 assert_eq!(c1_term_types, vec!["t1", "t1", "t2"]);
-                assert_eq!(c_1.parameters[0].type_pos.unwrap().line, 4);
+                assert_eq!(c_1.parameters[0].type_pos.unwrap().line, 3);
             }
             _ => panic!("parsing errors"),
         }
@@ -1125,7 +1125,7 @@ mod tests {
             Err(ParsingError::Syntactic(error)) => {
                 assert_eq!(error.expected, "'number' as the type of the function");
                 assert_eq!(error.found, "Identifier agent");
-                assert_eq!(error.position.line, 2);
+                assert_eq!(error.position.line, 1);
             }
             Err(error) => panic!("{:?}", error),
             Ok(_) => panic!("an object-valued function was accepted"),
@@ -1258,7 +1258,7 @@ mod tests {
             Err(ParsingError::Syntactic(error)) => {
                 assert_eq!(error.expected, "a fluent");
                 assert_eq!(error.found, "Number 1");
-                assert_eq!(error.position.line, 4);
+                assert_eq!(error.position.line, 3);
             }
             Err(error) => panic!("{:?}", error),
             Ok(_) => panic!("a number was accepted as the updated fluent"),
@@ -1278,7 +1278,7 @@ mod tests {
             Err(ParsingError::Syntactic(error)) => {
                 assert_eq!(error.expected, "a function name");
                 assert_eq!(error.found, "and");
-                assert_eq!(error.position.line, 4);
+                assert_eq!(error.position.line, 3);
             }
             Err(error) => panic!("{:?}", error),
             Ok(_) => panic!("a formula was accepted as an operand"),

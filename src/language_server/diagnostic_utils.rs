@@ -1,6 +1,6 @@
 use crate::ParsingError;
 use crate::SemanticErrorType;
-use crate::lexical_analyzer::LexicalAnalyzer;
+use crate::lexical_analyzer::{LexicalAnalyzer, TokenPosition};
 use crate::semantic_analyzer::DomainSemanticAnalyzer;
 use crate::semantic_analyzer::ProblemSemanticAnalyzer;
 use crate::syntactic_analyzer::AbstractSyntaxTree;
@@ -14,13 +14,13 @@ use tower_lsp::lsp_types::{DiagnosticRelatedInformation, Location, Url};
 use tower_lsp::lsp_types::{DocumentDiagnosticReport, FullDocumentDiagnosticReport};
 
 pub fn classify_file(content: &Vec<u8>) -> FileVariant {
-    let lexer = LexicalAnalyzer::new(content);
+    let lexer = LexicalAnalyzer::with_tab_width(content, LSP_TAB_WIDTH);
     let parser = Parser::new(lexer);
     parser.classify()
 }
 
 pub fn diagnose_domain(content: &Vec<u8>) -> DocumentDiagnosticReportResult {
-    let lexer = LexicalAnalyzer::new(content);
+    let lexer = LexicalAnalyzer::with_tab_width(content, LSP_TAB_WIDTH);
     let parser = Parser::new(lexer);
     let mut items = vec![];
     match parser.parse() {
@@ -75,7 +75,7 @@ pub fn diagnose_problem(
     let domain_verifier;
     let domain_ast;
     if let Some(content) = domain_content {
-        domain_lexer = LexicalAnalyzer::new(content);
+        domain_lexer = LexicalAnalyzer::with_tab_width(content, LSP_TAB_WIDTH);
         domain_parser = Parser::new(domain_lexer);
         match domain_parser.parse() {
             Ok(d_ast) => {
@@ -98,7 +98,7 @@ pub fn diagnose_problem(
             }
         }
     }
-    let problem_lexer = LexicalAnalyzer::new(problem_content);
+    let problem_lexer = LexicalAnalyzer::with_tab_width(problem_content, LSP_TAB_WIDTH);
     match Parser::new(problem_lexer).parse() {
         Ok(ast) if symbol_table.is_some() => {
             if let AbstractSyntaxTree::Problem(p_ast) = ast {
@@ -130,243 +130,96 @@ pub fn diagnose_problem(
     ))
 }
 
+// LSP positions count a tab as a single character (the client renders it), so
+// columns must not expand tabs
+const LSP_TAB_WIDTH: u32 = 1;
+
+// the range a token occupies. a zero-length position (end of file,
+// synthesized nodes) still gets a one-character range so the client has
+// something to underline
+fn range(position: TokenPosition) -> Range {
+    Range {
+        start: Position::new(position.line, position.column),
+        end: Position::new(position.line, position.column + position.length.max(1)),
+    }
+}
+
+// a whole-line range for errors that have no position of their own
+fn lines(start: u32, end: u32) -> Range {
+    Range {
+        start: Position::new(start, 0),
+        end: Position::new(end, 0),
+    }
+}
+
 impl From<ParsingError> for Diagnostic {
     fn from(error: ParsingError) -> Self {
         let source = Some("HDDL Analyzer".to_string());
-        match error {
-            ParsingError::Lexiacal(lexical_error) => {
-                let line_start = lexical_error.position.line;
-                Diagnostic::new(
-                    Range {
-                        start: Position::new(line_start.saturating_sub(1), 0),
-                        end: Position::new(line_start, 0),
-                    },
-                    Some(DiagnosticSeverity::ERROR),
-                    None,
-                    source,
-                    lexical_error.to_string(),
-                    None,
-                    None,
-                )
-            }
-            ParsingError::Syntactic(syntactic_error) => {
-                let line_start = syntactic_error.position.line;
-                Diagnostic::new(
-                    Range {
-                        start: Position::new(line_start.saturating_sub(1), 0),
-                        end: Position::new(line_start, 0),
-                    },
-                    Some(DiagnosticSeverity::ERROR),
-                    None,
-                    source,
-                    syntactic_error.to_string(),
-                    None,
-                    None,
-                )
-            }
-            ParsingError::JSON(json_error) => {
-                let line_start = json_error.line.saturating_sub(1);
-                Diagnostic::new(
-                    Range {
-                        start: Position::new(line_start, 0),
-                        end: Position::new(line_start + 1, 0),
-                    },
-                    Some(DiagnosticSeverity::ERROR),
-                    None,
-                    source,
-                    json_error.to_string(),
-                    None,
-                    None,
-                )
-            }
-            ParsingError::Transformation(message) => Diagnostic::new(
-                Range {
-                    start: Position::new(0, 0),
-                    end: Position::new(1, 0),
-                },
-                Some(DiagnosticSeverity::ERROR),
-                None,
-                source,
-                message,
-                None,
-                None,
-            ),
-            ParsingError::Semantic(semantic_error) => {
-                match semantic_error {
-                    // Duplicate Errors
-                    SemanticErrorType::DuplicateObjectDeclaration(ref duplicate)
-                    | SemanticErrorType::DuplicatePredicateDeclaration(ref duplicate)
-                    | SemanticErrorType::DuplicateFunctionDeclaration(ref duplicate)
-                    | SemanticErrorType::DuplicateActionDeclaration(ref duplicate)
-                    | SemanticErrorType::DuplicateCompoundTaskDeclaration(ref duplicate)
-                    | SemanticErrorType::DuplicateMethodDeclaration(ref duplicate)
-                    | SemanticErrorType::DuplicateParameterDeclaration(ref duplicate) => {
-                        Diagnostic::new(
-                            Range {
-                                start: Position {
-                                    line: duplicate.second_pos.line.saturating_sub(1),
-                                    character: 0,
-                                },
-                                end: Position {
-                                    line: duplicate.second_pos.line,
-                                    character: 0,
-                                },
-                            },
-                            Some(DiagnosticSeverity::ERROR),
-                            None,
-                            source,
-                            semantic_error.to_string(),
-                            Some(vec![DiagnosticRelatedInformation {
-                                location: Location {
-                                    // TODO: fix the dummy URI
-                                    uri: Url::parse("//").unwrap(),
-                                    range: Range {
-                                        start: Position {
-                                            line: duplicate.first_pos.line.saturating_sub(1),
-                                            character: 0,
-                                        },
-                                        end: Position {
-                                            line: duplicate.first_pos.line,
-                                            character: 0,
-                                        },
-                                    },
-                                },
-                                message: semantic_error.to_string(),
-                            }]),
-                            None,
-                        )
-                    }
-                    SemanticErrorType::DuplicateRequirementDeclaration(_) => {
-                        // TODO: fix this dummy range
-                        Diagnostic::new(
-                            Range {
-                                start: Position {
-                                    line: 0,
-                                    character: 0,
-                                },
-                                end: Position {
-                                    line: 1,
-                                    character: 0,
-                                },
-                            },
-                            Some(DiagnosticSeverity::INFORMATION),
-                            None,
-                            source,
-                            semantic_error.to_string(),
-                            None,
-                            None,
-                        )
-                    }
-                    // Undefined Entities
-                    SemanticErrorType::UndefinedPredicate(ref undefined)
-                    | SemanticErrorType::UndefinedFunction(ref undefined)
-                    | SemanticErrorType::UndefinedType(ref undefined)
-                    | SemanticErrorType::UndefinedSubtask(ref undefined)
-                    | SemanticErrorType::UndefinedTask(ref undefined)
-                    | SemanticErrorType::UndefinedParameter(ref undefined)
-                    | SemanticErrorType::UndefinedObject(ref undefined) => Diagnostic::new(
-                        Range {
-                            start: Position {
-                                line: undefined.position.line.saturating_sub(1),
-                                character: 0,
-                            },
-                            end: Position {
-                                line: undefined.position.line,
-                                character: 0,
-                            },
+        let message = error.to_string();
+        let mut severity = DiagnosticSeverity::ERROR;
+        let mut related_information = None;
+        let range = match error {
+            ParsingError::Lexiacal(lexical_error) => range(lexical_error.position),
+            ParsingError::Syntactic(syntactic_error) => range(syntactic_error.position),
+            ParsingError::JSON(json_error) => range(json_error.position),
+            ParsingError::Transformation(_) => lines(0, 1),
+            ParsingError::Semantic(semantic_error) => match semantic_error {
+                // Duplicate Errors
+                SemanticErrorType::DuplicateObjectDeclaration(duplicate)
+                | SemanticErrorType::DuplicatePredicateDeclaration(duplicate)
+                | SemanticErrorType::DuplicateFunctionDeclaration(duplicate)
+                | SemanticErrorType::DuplicateActionDeclaration(duplicate)
+                | SemanticErrorType::DuplicateCompoundTaskDeclaration(duplicate)
+                | SemanticErrorType::DuplicateMethodDeclaration(duplicate)
+                | SemanticErrorType::DuplicateParameterDeclaration(duplicate) => {
+                    related_information = Some(vec![DiagnosticRelatedInformation {
+                        location: Location {
+                            // TODO: fix the dummy URI
+                            uri: Url::parse("//").unwrap(),
+                            range: range(duplicate.first_pos),
                         },
-                        Some(DiagnosticSeverity::ERROR),
-                        None,
-                        source,
-                        semantic_error.to_string(),
-                        None,
-                        None,
-                    ),
-                    // Inconsistency Error
-                    SemanticErrorType::InconsistentPredicateArity(ref arity_error)
-                    | SemanticErrorType::InconsistentFunctionArity(ref arity_error)
-                    | SemanticErrorType::InconsistentTaskArity(ref arity_error) => Diagnostic::new(
-                        Range {
-                            start: Position {
-                                line: arity_error.position.line.saturating_sub(1),
-                                character: 0,
-                            },
-                            end: Position {
-                                line: arity_error.position.line,
-                                character: 0,
-                            },
-                        },
-                        Some(DiagnosticSeverity::ERROR),
-                        None,
-                        source,
-                        semantic_error.to_string(),
-                        None,
-                        None,
-                    ),
-                    SemanticErrorType::InconsistentPredicateArgType(ref type_error)
-                    | SemanticErrorType::InconsistentFunctionArgType(ref type_error)
-                    | SemanticErrorType::InconsistentTaskArgType(ref type_error) => {
-                        Diagnostic::new(
-                            Range {
-                                start: Position {
-                                    line: type_error.position.line.saturating_sub(1),
-                                    character: 0,
-                                },
-                                end: Position {
-                                    line: type_error.position.line,
-                                    character: 0,
-                                },
-                            },
-                            Some(DiagnosticSeverity::ERROR),
-                            None,
-                            source,
-                            semantic_error.to_string(),
-                            None,
-                            None,
-                        )
-                    }
-                    // Ordering Errors
-                    SemanticErrorType::CyclicTypeDeclaration => {
-                        // TODO: fix the dummy range
-                        Diagnostic::new(
-                            Range {
-                                start: Position {
-                                    line: 0,
-                                    character: 0,
-                                },
-                                end: Position {
-                                    line: 10,
-                                    character: 0,
-                                },
-                            },
-                            Some(DiagnosticSeverity::ERROR),
-                            None,
-                            source,
-                            semantic_error.to_string(),
-                            None,
-                            None,
-                        )
-                    }
-                    SemanticErrorType::CyclicOrderingDeclaration(pos) => Diagnostic::new(
-                        Range {
-                            start: Position {
-                                line: pos.line.saturating_sub(1),
-                                character: 0,
-                            },
-                            end: Position {
-                                line: pos.line,
-                                character: 0,
-                            },
-                        },
-                        Some(DiagnosticSeverity::ERROR),
-                        None,
-                        source,
-                        semantic_error.to_string(),
-                        None,
-                        None,
-                    ),
+                        message: message.clone(),
+                    }]);
+                    range(duplicate.second_pos)
                 }
-            }
-        }
+                SemanticErrorType::DuplicateRequirementDeclaration(_) => {
+                    // TODO: fix this dummy range
+                    severity = DiagnosticSeverity::INFORMATION;
+                    lines(0, 1)
+                }
+                // Undefined Entities
+                SemanticErrorType::UndefinedPredicate(undefined)
+                | SemanticErrorType::UndefinedFunction(undefined)
+                | SemanticErrorType::UndefinedType(undefined)
+                | SemanticErrorType::UndefinedSubtask(undefined)
+                | SemanticErrorType::UndefinedTask(undefined)
+                | SemanticErrorType::UndefinedParameter(undefined)
+                | SemanticErrorType::UndefinedObject(undefined) => range(undefined.position),
+                // Inconsistency Error
+                SemanticErrorType::InconsistentPredicateArity(arity_error)
+                | SemanticErrorType::InconsistentFunctionArity(arity_error)
+                | SemanticErrorType::InconsistentTaskArity(arity_error) => {
+                    range(arity_error.position)
+                }
+                SemanticErrorType::InconsistentPredicateArgType(type_error)
+                | SemanticErrorType::InconsistentFunctionArgType(type_error)
+                | SemanticErrorType::InconsistentTaskArgType(type_error) => {
+                    range(type_error.position)
+                }
+                // Ordering Errors
+                // TODO: fix the dummy range
+                SemanticErrorType::CyclicTypeDeclaration => lines(0, 10),
+                SemanticErrorType::CyclicOrderingDeclaration(pos) => range(pos),
+            },
+        };
+        Diagnostic::new(
+            range,
+            Some(severity),
+            None,
+            source,
+            message,
+            related_information,
+            None,
+        )
     }
 }

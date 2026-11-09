@@ -1,7 +1,7 @@
 use crate::TokenPosition;
 use std::fmt;
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum LexicalErrorType {
     InvalidIdentifier,
     InvalidRealNumber,
@@ -21,22 +21,22 @@ impl fmt::Display for LexicalError {
             LexicalErrorType::InvalidIdentifier => {
                 write!(
                     f,
-                    "line {}: '{}' is an invalid identifier.",
-                    self.position.line, self.lexeme
+                    "{}: '{}' is an invalid identifier.",
+                    self.position, self.lexeme
                 )
             }
             LexicalErrorType::InvalidKeyword => {
                 write!(
                     f,
-                    "line {}: '{}' is an invalid keyword.",
-                    self.position.line, self.lexeme
+                    "{}: '{}' is an invalid keyword.",
+                    self.position, self.lexeme
                 )
             }
             LexicalErrorType::InvalidRealNumber => {
                 write!(
                     f,
-                    "line {}: '{}' is an invalid real number. Expected digits after '.'",
-                    self.position.line, self.lexeme
+                    "{}: '{}' is an invalid real number. Expected digits after '.'",
+                    self.position, self.lexeme
                 )
             }
         }

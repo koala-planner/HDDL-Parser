@@ -10,13 +10,13 @@ use crate::{
 };
 
 fn symbol(name: &'static str) -> Symbol<'static> {
-    Symbol::new(name, TokenPosition { line: 0 }, None, None)
+    Symbol::new(name, TokenPosition::default(), None, None)
 }
 
 fn predicate(name: &'static str, vars: Vec<&'static str>) -> Predicate<'static> {
     Predicate::new(
         name,
-        TokenPosition { line: 0 },
+        TokenPosition::default(),
         vars.into_iter().map(symbol).collect(),
     )
 }
@@ -63,7 +63,7 @@ pub fn pddl_display_test() {
         "(and\n\t(at p_1 p_2)\n\t(not (clear))\n\t(= a b)\n)"
     );
 
-    let var = Symbol::new("x", TokenPosition { line: 0 }, Some("loc"), None);
+    let var = Symbol::new("x", TokenPosition::default(), Some("loc"), None);
     let for_all = Precondition::ForAll(vec![var], atom("p_1", vec![]));
     assert_eq!(for_all.to_string(), "(forall (x - loc) (p_1))");
 
@@ -87,10 +87,10 @@ pub fn pddl_display_test() {
 pub fn action_display_test() {
     let action = Action {
         name: "pickup",
-        name_pos: TokenPosition { line: 0 },
+        name_pos: TokenPosition::default(),
         parameters: vec![Symbol::new(
             "?x",
-            TokenPosition { line: 0 },
+            TokenPosition::default(),
             Some("block"),
             None,
         )],
@@ -118,7 +118,7 @@ pub fn action_display_test() {
 pub fn action_display_omits_empty_test() {
     let action = Action {
         name: "noop",
-        name_pos: TokenPosition { line: 0 },
+        name_pos: TokenPosition::default(),
         parameters: vec![],
         preconditions: None,
         effects: None,
@@ -147,9 +147,9 @@ pub fn subtask_display_test() {
 pub fn predicate_display_test() {
     let predicate = Predicate::new(
         "at",
-        TokenPosition { line: 0 },
+        TokenPosition::default(),
         vec![
-            Symbol::new("?x", TokenPosition { line: 0 }, Some("loc"), None),
+            Symbol::new("?x", TokenPosition::default(), Some("loc"), None),
             symbol("?y"),
         ],
     );

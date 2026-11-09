@@ -30,7 +30,14 @@ pub fn undefined_predicate_action_precondition_test() {
                 Err(error) => match error {
                     SemanticErrorType::UndefinedPredicate(x) => {
                         assert_eq!(x.symbol, "pred_5");
-                        assert_eq!(x.position.line, 9);
+                        assert_eq!(x.position.line, 8);
+                        let line = std::str::from_utf8(&program)
+                            .unwrap()
+                            .lines()
+                            .nth(x.position.line as usize)
+                            .unwrap();
+                        assert_eq!(x.position.column as usize, line.find("pred_5").unwrap());
+                        assert_eq!(x.position.length, 6);
                     }
                     token => {
                         panic!("{:?}", token)
@@ -122,7 +129,7 @@ pub fn undefined_predicate_method_precondition_test() {
                 Err(error) => match error {
                     SemanticErrorType::UndefinedPredicate(x) => {
                         assert_eq!(x.symbol, "pred_5");
-                        assert_eq!(x.position.line, 10);
+                        assert_eq!(x.position.line, 9);
                     }
                     _ => {
                         panic!("caught wrong error")
@@ -173,7 +180,7 @@ pub fn undefined_method_parameters_test() {
                 Err(error) => match error {
                     SemanticErrorType::UndefinedParameter(x) => {
                         assert_eq!(x.symbol, "?p5");
-                        assert_eq!(x.position.line, 15);
+                        assert_eq!(x.position.line, 14);
                     }
                     x => {
                         panic!("{:?}", x)
@@ -226,7 +233,7 @@ pub fn undefined_subtask_test() {
                 Err(error) => match error {
                     SemanticErrorType::UndefinedSubtask(x) => {
                         assert_eq!(x.symbol, "c_3");
-                        assert_eq!(x.position.line, 20);
+                        assert_eq!(x.position.line, 19);
                     }
                     error => {
                         panic!("{:?}", error)
@@ -323,7 +330,7 @@ pub fn undefined_type_compound_task_test() {
                 Err(error) => match error {
                     SemanticErrorType::UndefinedType(x) => {
                         assert_eq!(x.symbol, "t5");
-                        assert_eq!(x.position.line, 9);
+                        assert_eq!(x.position.line, 8);
                     }
                     _ => {
                         panic!("caught wrong error")
@@ -361,7 +368,7 @@ pub fn undefined_type_predicate_test() {
                 Err(error) => match error {
                     SemanticErrorType::UndefinedType(x) => {
                         assert_eq!(x.symbol, "t2");
-                        assert_eq!(x.position.line, 6);
+                        assert_eq!(x.position.line, 5);
                     }
                     _ => {
                         panic!("caught wrong error")
@@ -413,7 +420,7 @@ pub fn undefined_predicate_forall_quantification_test() {
                 Err(error) => match error {
                     SemanticErrorType::UndefinedPredicate(x) => {
                         assert_eq!(x.symbol, "wro");
-                        assert_eq!(x.position.line, 16)
+                        assert_eq!(x.position.line, 15)
                     }
                     error => {
                         panic!("{:?}", error)
@@ -461,7 +468,7 @@ pub fn undefined_method_task_test() {
                 Err(error) => match error {
                     SemanticErrorType::UndefinedTask(x) => {
                         assert_eq!(x.symbol, "deliver_abs");
-                        assert_eq!(x.position.line, 12)
+                        assert_eq!(x.position.line, 11)
                     }
                     _ => {
                         panic!("caught wrong error")

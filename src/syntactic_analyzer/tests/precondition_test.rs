@@ -66,7 +66,7 @@ mod tests {
 
     #[test]
     pub fn quantified_not_conjunction_test() {
-        let var = Symbol::new("x", TokenPosition { line: 0 }, None, None);
+        let var = Symbol::new("x", TokenPosition::default(), None, None);
         let exists = Precondition::Exists(vec![var.clone()], atom("p_1"));
         assert!(!exists.is_simple_conjunction());
         let for_all = Precondition::ForAll(vec![var], atom("p_1"));
