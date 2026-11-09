@@ -221,13 +221,21 @@ impl LanguageServer for RequestHandler {
         &self,
         params: DocumentDiagnosticParams,
     ) -> tower_lsp::jsonrpc::Result<DocumentDiagnosticReportResult> {
-        match self.documents.read().await.get(&params.text_document.uri) {
+        let document = {
+            self.documents
+                .read()
+                .await
+                .get(&params.text_document.uri)
+                .cloned()
+        };
+
+        match document {
             Some(document) => {
                 self.client
                     .log_message(MessageType::LOG, "Diagnostic Request Recieved.")
                     .await;
                 let file_path = Self::diagnostic_file_path(&params.text_document.uri)?;
-                match classify_file(document) {
+                match classify_file(&document) {
                     FileVariant::Domain => {
                         self.client
                             .log_message(
@@ -238,12 +246,12 @@ impl LanguageServer for RequestHandler {
                                 ),
                             )
                             .await;
-                        let diagnosis = diagnose_domain(document);
+                        let diagnosis = diagnose_domain(&document);
                         return Ok(diagnosis);
                     }
                     FileVariant::Problem => {
                         return Ok(self
-                            .diagnose_problem_with_sibling_domain(file_path, document)
+                            .diagnose_problem_with_sibling_domain(file_path, &document)
                             .await);
                     }
                     FileVariant::MaybeNotHDDL => {
