@@ -3,7 +3,8 @@ use std::{assert_eq, vec};
 
 use super::{Input, Transpiler};
 use crate::{
-    AbstractSyntaxTree, Action, Effect, HDDLProgram, LexicalAnalyzer, Parser,
+    AbstractSyntaxTree, Action, AssignmentOperator, Effect, HDDLProgram, LexicalAnalyzer,
+    NumericExpr, Parser,
     Precondition::{self, Atom},
     Predicate, Subtask, Symbol, TokenPosition,
 };
@@ -1133,4 +1134,96 @@ pub fn conjunctive_preconditions_splits_method_test() {
     assert_eq!(result.domain.actions.len(), 1);
     assert_eq!(result.domain.compound_tasks.len(), 1);
     result.verify().unwrap();
+}
+
+#[test]
+pub fn numeric_effect_round_trip_test() {
+    assert_domain_round_trip(
+        "(define (domain transport)
+
+	(:requirements :typing :numeric-fluents)
+
+	(:types
+		vehicle - object
+		location - object
+	)
+
+	(:predicates (at ?v - vehicle ?l - location))
+
+	(:functions
+		(fuel ?v - vehicle)
+		(road-length ?l1 - location ?l2 - location)
+		(total-cost)
+	)
+
+	(:action drive
+	 :parameters (?v - vehicle ?l1 - location ?l2 - location)
+	 :precondition (at ?v ?l1)
+	 :effect (and
+	 	(not (at ?v ?l1))
+	 	(at ?v ?l2)
+	 	(increase (total-cost) (road-length ?l1 ?l2))
+	 	(decrease (fuel ?v) 2.5)
+	 	(assign (fuel ?v) 0)
+	 	(forall (?l - location) (scale-up (fuel ?v) 2))
+	 )
+	)
+
+)",
+    );
+}
+
+#[test]
+pub fn quantifier_elimination_grounds_numeric_effects_test() {
+    let domain = "(define (domain qe)
+        (:types location - object)
+        (:predicates (visited ?l - location))
+        (:functions (visits ?l - location) (distance ?from ?to - location) (total-cost))
+        (:action tour
+         :parameters (?start - location)
+         :effect (forall (?l - location) (and
+            (visited ?l)
+            (increase (visits ?l) 1)
+            (increase (total-cost) (distance ?start ?l))))
+        )
+    )";
+    let problem = "(define (problem p_qe) (:domain qe)
+        (:objects loc_0 loc_1 - location)
+        (:init (visited loc_0))
+    )";
+    let domain_bytes = domain.as_bytes().to_vec();
+    let problem_bytes = problem.as_bytes().to_vec();
+    let result = Transpiler::from_hddl(&domain_bytes, Some(&problem_bytes))
+        .unwrap()
+        .transform(crate::Transformation::QuantifierElimintation)
+        .unwrap()
+        .into_program();
+    // one instance per location, with the bound variable replaced in both the
+    // updated fluent and the fluent read by the operand
+    let Some(Effect::And(instances)) = &result.domain.actions[0].effects else {
+        panic!("expected a conjunction of instances")
+    };
+    assert_eq!(instances.len(), 2);
+    for (instance, location) in instances.iter().zip(["loc_0", "loc_1"]) {
+        let Effect::And(conjuncts) = instance.as_ref() else {
+            panic!("expected a grounded conjunction")
+        };
+        assert_eq!(conjuncts.len(), 3);
+        match conjuncts[1].as_ref() {
+            Effect::Numeric(AssignmentOperator::Increase, fluent, NumericExpr::Number(_)) => {
+                assert_eq!(fluent.name, "visits");
+                assert_eq!(fluent.variables[0].name, location);
+            }
+            other => panic!("expected (increase (visits {location}) 1), got {other}"),
+        }
+        match conjuncts[2].as_ref() {
+            Effect::Numeric(AssignmentOperator::Increase, fluent, NumericExpr::Fluent(read)) => {
+                assert_eq!(fluent.name, "total-cost");
+                assert_eq!(read.name, "distance");
+                let args: Vec<&str> = read.variables.iter().map(|v| v.name).collect();
+                assert_eq!(args, vec!["?start", location]);
+            }
+            other => panic!("expected an increase by (distance ?start {location}), got {other}"),
+        }
+    }
 }

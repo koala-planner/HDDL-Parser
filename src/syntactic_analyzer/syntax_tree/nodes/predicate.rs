@@ -38,6 +38,17 @@ impl<'a> Predicate<'a> {
     pub fn arity(&self) -> usize {
         self.variables.len()
     }
+
+    // ground substitution of the variable `var` by `value` in the arguments
+    pub fn substitute(&self, var: &str, value: &Symbol<'a>) -> Predicate<'a> {
+        let mut predicate = self.clone();
+        for symbol in predicate.variables.iter_mut() {
+            if symbol.name == var {
+                *symbol = value.clone();
+            }
+        }
+        predicate
+    }
 }
 
 impl<'a> PartialEq for Predicate<'a> {

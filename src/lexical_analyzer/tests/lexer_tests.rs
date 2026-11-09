@@ -279,6 +279,20 @@ mod lexer_test {
     }
 
     #[test]
+    pub fn numeric_requirement_recognition_test() {
+        let program = String::from(":fluents :numeric-fluents :action-costs\n").into_bytes();
+        let lexer = LexicalAnalyzer::new(&program);
+        for expected in [
+            Token::Requirement(RequirementType::Fluents),
+            Token::Requirement(RequirementType::NumericFluents),
+            Token::Requirement(RequirementType::ActionCosts),
+            Token::EOF,
+        ] {
+            assert_eq!(lexer.get_token().unwrap(), expected);
+        }
+    }
+
+    #[test]
     pub fn numeric_operator_recognition_test() {
         let program = String::from("increase decrease assign scale-up scale-down\n").into_bytes();
         let lexer = LexicalAnalyzer::new(&program);

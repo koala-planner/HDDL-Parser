@@ -7,12 +7,14 @@ pub enum SemanticErrorType {
     DuplicateObjectDeclaration(DuplicateError),
     DuplicateRequirementDeclaration(RequirementType),
     DuplicatePredicateDeclaration(DuplicateError),
+    DuplicateFunctionDeclaration(DuplicateError),
     DuplicateActionDeclaration(DuplicateError),
     DuplicateCompoundTaskDeclaration(DuplicateError),
     DuplicateMethodDeclaration(DuplicateError),
     DuplicateParameterDeclaration(DuplicateError),
     // Undefined Entities
     UndefinedPredicate(UndefinedSymbolError),
+    UndefinedFunction(UndefinedSymbolError),
     UndefinedType(UndefinedSymbolError),
     UndefinedSubtask(UndefinedSymbolError),
     UndefinedTask(UndefinedSymbolError),
@@ -20,8 +22,10 @@ pub enum SemanticErrorType {
     UndefinedObject(UndefinedSymbolError),
     // Inconsistency Error
     InconsistentPredicateArity(ArityError),
+    InconsistentFunctionArity(ArityError),
     InconsistentTaskArity(ArityError),
     InconsistentPredicateArgType(TypeError),
+    InconsistentFunctionArgType(TypeError),
     InconsistentTaskArgType(TypeError),
     // Ordering Errors
     CyclicTypeDeclaration,
@@ -41,6 +45,9 @@ impl fmt::Display for SemanticErrorType {
             SemanticErrorType::DuplicatePredicateDeclaration(duplicate) => {
                 write!(f, "predicate {}", duplicate)
             }
+            SemanticErrorType::DuplicateFunctionDeclaration(duplicate) => {
+                write!(f, "function {}", duplicate)
+            }
             SemanticErrorType::DuplicateActionDeclaration(duplicate) => {
                 write!(f, "action {}", duplicate)
             }
@@ -58,6 +65,13 @@ impl fmt::Display for SemanticErrorType {
                 write!(
                     f,
                     "line {}: predicate {} is not defined.",
+                    undefined.position.line, undefined.symbol
+                )
+            }
+            SemanticErrorType::UndefinedFunction(undefined) => {
+                write!(
+                    f,
+                    "line {}: function {} is not defined.",
                     undefined.position.line, undefined.symbol
                 )
             }
@@ -107,6 +121,16 @@ impl fmt::Display for SemanticErrorType {
                     ar_error.found_arity
                 )
             }
+            SemanticErrorType::InconsistentFunctionArity(ar_error) => {
+                write!(
+                    f,
+                    "line {}: function {} takes {} parameters, but {} are given.",
+                    ar_error.position.line,
+                    ar_error.symbol,
+                    ar_error.expected_arity,
+                    ar_error.found_arity
+                )
+            }
             SemanticErrorType::InconsistentTaskArity(ar_error) => {
                 write!(
                     f,
@@ -114,7 +138,8 @@ impl fmt::Display for SemanticErrorType {
                     ar_error.symbol, ar_error.expected_arity, ar_error.found_arity
                 )
             }
-            SemanticErrorType::InconsistentPredicateArgType(type_error) => {
+            SemanticErrorType::InconsistentPredicateArgType(type_error)
+            | SemanticErrorType::InconsistentFunctionArgType(type_error) => {
                 write!(f, "{}", type_error)
             }
             SemanticErrorType::InconsistentTaskArgType(type_error) => write!(f, "{}", type_error),

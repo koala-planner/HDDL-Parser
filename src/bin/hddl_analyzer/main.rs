@@ -43,7 +43,7 @@ impl InputData {
                 let json = fs::read_to_string(&input.input_path).map_err(|err| err.to_string())?;
                 Ok(InputData::Json(json))
             }
-            Some("hddl") => {
+            Some("hddl" | "pddl") => {
                 let domain = fs::read(&input.input_path).map_err(|err| err.to_string())?;
                 let problem = match &input.problem_path {
                     Some(path) => Some(fs::read(path).map_err(|err| err.to_string())?),
@@ -52,7 +52,7 @@ impl InputData {
                 Ok(InputData::Hddl { domain, problem })
             }
             Some(other) => Err(format!(
-                "unrecognized input extension '.{other}' (expected .hddl or .json)"
+                "unrecognized input extension '.{other}' (expected .hddl, .pddl or .json)"
             )),
             None => Err("the input file has no extension; cannot infer its format".to_string()),
         }

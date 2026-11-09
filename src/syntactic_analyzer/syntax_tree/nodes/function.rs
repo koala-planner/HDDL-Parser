@@ -14,6 +14,19 @@ pub struct Function<'a> {
     pub variables: Vec<Symbol<'a>>,
 }
 
+impl<'a> Function<'a> {
+    // ground substitution of the variable `var` by `value` in the arguments
+    pub fn substitute(&self, var: &str, value: &Symbol<'a>) -> Function<'a> {
+        let mut function = self.clone();
+        for symbol in function.variables.iter_mut() {
+            if symbol.name == var {
+                *symbol = value.clone();
+            }
+        }
+        function
+    }
+}
+
 impl<'a> fmt::Display for Function<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", format_call(self.name, &self.variables))

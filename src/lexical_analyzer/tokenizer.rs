@@ -103,6 +103,11 @@ impl<'a> LexicalAnalyzer<'a> {
                         }
                         "domain-axioms" => Ok(Token::Requirement(RequirementType::DomainAxioms)),
                         "adl" => Ok(Token::Requirement(RequirementType::ADL)),
+                        "fluents" => Ok(Token::Requirement(RequirementType::Fluents)),
+                        "numeric-fluents" => {
+                            Ok(Token::Requirement(RequirementType::NumericFluents))
+                        }
+                        "action-costs" => Ok(Token::Requirement(RequirementType::ActionCosts)),
                         // Keywords
                         "requirements" => Ok(Token::Keyword(KeywordName::Requirements)),
                         "objects" => Ok(Token::Keyword(KeywordName::Objects)),

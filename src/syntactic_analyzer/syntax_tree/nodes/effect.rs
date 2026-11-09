@@ -7,6 +7,30 @@ use crate::transpiler::format_typed_list;
 
 use super::*;
 
+// how a numeric effect combines a fluent's current value with its operand
+// (PDDL's <assign-op>)
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum AssignmentOperator {
+    Assign,
+    Increase,
+    Decrease,
+    ScaleUp,
+    ScaleDown,
+}
+
+impl fmt::Display for AssignmentOperator {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let keyword = match self {
+            AssignmentOperator::Assign => "assign",
+            AssignmentOperator::Increase => "increase",
+            AssignmentOperator::Decrease => "decrease",
+            AssignmentOperator::ScaleUp => "scale-up",
+            AssignmentOperator::ScaleDown => "scale-down",
+        };
+        write!(f, "{}", keyword)
+    }
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum Effect<'a> {
     Empty,
@@ -26,6 +50,9 @@ pub enum Effect<'a> {
     Probabilistic(Vec<(NumberType, Box<Effect<'a>>)>),
     // formula = formula'
     Equals(#[serde(borrow)] &'a str, &'a str),
+    // (op fluent operand): a numeric effect updating the fluent's value,
+    // e.g. (increase (total-cost) (road-length ?l1 ?l2))
+    Numeric(AssignmentOperator, Function<'a>, NumericExpr<'a>),
 }
 
 impl<'a> Effect<'a> {
@@ -34,7 +61,7 @@ impl<'a> Effect<'a> {
     pub fn get_predicates(&self, include_quantified: bool) -> Vec<&Predicate<'a>> {
         let mut predicates = vec![];
         match self {
-            Effect::Empty | Effect::Equals(_, _) => {}
+            Effect::Empty | Effect::Equals(_, _) | Effect::Numeric(_, _, _) => {}
             Effect::Atom(predicate) => {
                 predicates.push(predicate);
             }
@@ -64,6 +91,43 @@ impl<'a> Effect<'a> {
         predicates
     }
 
+    // the fluents mentioned by the effect, both updated and read
+    pub fn get_fluents(&self, include_quantified: bool) -> Vec<&Function<'a>> {
+        let mut fluents = vec![];
+        match self {
+            Effect::Empty | Effect::Atom(_) | Effect::Equals(_, _) => {}
+            Effect::Numeric(_, fluent, operand) => {
+                fluents.push(fluent);
+                if let NumericExpr::Fluent(read) = operand {
+                    fluents.push(read);
+                }
+            }
+            Effect::Not(inner) => {
+                fluents.extend(inner.get_fluents(include_quantified));
+            }
+            Effect::And(terms) | Effect::Or(terms) | Effect::Xor(terms) => {
+                for term in terms {
+                    fluents.extend(term.get_fluents(include_quantified));
+                }
+            }
+            // the guard is a precondition, which holds no fluents
+            Effect::Imply(_, body) => {
+                fluents.extend(body.get_fluents(include_quantified));
+            }
+            Effect::ForAll(_, body) | Effect::Exists(_, body) => {
+                if include_quantified {
+                    fluents.extend(body.get_fluents(true));
+                }
+            }
+            Effect::Probabilistic(branches) => {
+                for (_, effect) in branches {
+                    fluents.extend(effect.get_fluents(include_quantified));
+                }
+            }
+        }
+        fluents
+    }
+
     pub fn is_simple_conjunction(&self) -> bool {
         match self {
             Effect::Empty => true,
@@ -86,7 +150,7 @@ impl<'a> Effect<'a> {
 
     pub(crate) fn is_literal(&self) -> bool {
         match self {
-            Effect::Atom(_) => true,
+            Effect::Atom(_) | Effect::Numeric(_, _, _) => true,
             Effect::Not(inner) => matches!(&**inner, Effect::Atom(_) | Effect::Equals(_, _)),
             _ => false,
         }
@@ -94,7 +158,9 @@ impl<'a> Effect<'a> {
 
     pub fn is_quantified(&self) -> bool {
         match self {
-            Effect::Empty | Effect::Atom(_) | Effect::Equals(_, _) => false,
+            Effect::Empty | Effect::Atom(_) | Effect::Equals(_, _) | Effect::Numeric(_, _, _) => {
+                false
+            }
             Effect::And(inner) | Effect::Or(inner) | Effect::Xor(inner) => {
                 inner.iter().any(|x| x.is_quantified())
             }
@@ -111,15 +177,7 @@ impl<'a> Effect<'a> {
     pub fn substitute(&self, var: &str, value: &Symbol<'a>) -> Effect<'a> {
         match self {
             Effect::Empty => Effect::Empty,
-            Effect::Atom(predicate) => {
-                let mut predicate = predicate.clone();
-                for symbol in predicate.variables.iter_mut() {
-                    if symbol.name == var {
-                        *symbol = value.clone();
-                    }
-                }
-                Effect::Atom(predicate)
-            }
+            Effect::Atom(predicate) => Effect::Atom(predicate.substitute(var, value)),
             Effect::Not(inner) => Effect::Not(Box::new(inner.substitute(var, value))),
             Effect::And(terms) => Effect::And(
                 terms
@@ -169,6 +227,11 @@ impl<'a> Effect<'a> {
                 if *lhs == var { value.name } else { lhs },
                 if *rhs == var { value.name } else { rhs },
             ),
+            Effect::Numeric(op, fluent, operand) => Effect::Numeric(
+                *op,
+                fluent.substitute(var, value),
+                operand.substitute(var, value),
+            ),
         }
     }
 
@@ -181,7 +244,9 @@ impl<'a> Effect<'a> {
             return true;
         }
         match self {
-            Effect::Empty | Effect::Atom(_) | Effect::Equals(_, _) => false,
+            Effect::Empty | Effect::Atom(_) | Effect::Equals(_, _) | Effect::Numeric(_, _, _) => {
+                false
+            }
             Effect::Not(inner)
             | Effect::Imply(_, inner)
             | Effect::Exists(_, inner)
@@ -242,6 +307,7 @@ impl<'a> fmt::Display for Effect<'a> {
                 write!(f, "{}", connective("probabilistic", terms))
             }
             Effect::Equals(lhs, rhs) => write!(f, "(= {} {})", lhs, rhs),
+            Effect::Numeric(op, fluent, operand) => write!(f, "({} {} {})", op, fluent, operand),
         }
     }
 }

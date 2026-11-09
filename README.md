@@ -3,9 +3,9 @@ A tool for validating planning models specified in the Hierarchical Domain Defin
 # Detected Errors
 In what follows, we provide the currently supported list of errors (for further details, see the paper by Sleath and Bercher (2023)[^2]). Once detected, actionable error messages in conjunction with the exact error location are returned to help modelers fix problems quickly.
 * **Basic Syntax Issues**: Detects deviations from the HDDL grammar.
-* **Inconsistent Parameter Usage**: Catches type mismatches and incorrect parameter counts in task/predicate usage.
-* **Undefined Entities**: Identifies undefined predicates, types, objects, and tasks.
-* **Duplicate Definitions**: Finds duplicate tasks, methods, predicates, and constants.
+* **Inconsistent Parameter Usage**: Catches type mismatches and incorrect parameter counts in task/predicate/function usage.
+* **Undefined Entities**: Identifies undefined predicates, functions, types, objects, and tasks.
+* **Duplicate Definitions**: Finds duplicate tasks, methods, predicates, functions, and constants.
 * **Cyclic Type Declarations**: Identifies cycles in the type hierarchy.
 * **Undeclared Parameters**: Catches use of parameters not declared in tasks or methods.
 * **Task Network Issues**: Detects cyclic ordering declaration.

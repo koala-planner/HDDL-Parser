@@ -196,6 +196,7 @@ impl From<ParsingError> for Diagnostic {
                     // Duplicate Errors
                     SemanticErrorType::DuplicateObjectDeclaration(ref duplicate)
                     | SemanticErrorType::DuplicatePredicateDeclaration(ref duplicate)
+                    | SemanticErrorType::DuplicateFunctionDeclaration(ref duplicate)
                     | SemanticErrorType::DuplicateActionDeclaration(ref duplicate)
                     | SemanticErrorType::DuplicateCompoundTaskDeclaration(ref duplicate)
                     | SemanticErrorType::DuplicateMethodDeclaration(ref duplicate)
@@ -258,6 +259,7 @@ impl From<ParsingError> for Diagnostic {
                     }
                     // Undefined Entities
                     SemanticErrorType::UndefinedPredicate(ref undefined)
+                    | SemanticErrorType::UndefinedFunction(ref undefined)
                     | SemanticErrorType::UndefinedType(ref undefined)
                     | SemanticErrorType::UndefinedSubtask(ref undefined)
                     | SemanticErrorType::UndefinedTask(ref undefined)
@@ -282,6 +284,7 @@ impl From<ParsingError> for Diagnostic {
                     ),
                     // Inconsistency Error
                     SemanticErrorType::InconsistentPredicateArity(ref arity_error)
+                    | SemanticErrorType::InconsistentFunctionArity(ref arity_error)
                     | SemanticErrorType::InconsistentTaskArity(ref arity_error) => Diagnostic::new(
                         Range {
                             start: Position {
@@ -301,6 +304,7 @@ impl From<ParsingError> for Diagnostic {
                         None,
                     ),
                     SemanticErrorType::InconsistentPredicateArgType(ref type_error)
+                    | SemanticErrorType::InconsistentFunctionArgType(ref type_error)
                     | SemanticErrorType::InconsistentTaskArgType(ref type_error) => {
                         Diagnostic::new(
                             Range {

@@ -341,7 +341,7 @@ impl<'a> Transpiler<'a> {
         type_predicates: &HashMap<&'a str, &'a str>,
     ) {
         match effect {
-            Effect::Empty | Effect::Atom(_) | Effect::Equals(_, _) => {}
+            Effect::Empty | Effect::Atom(_) | Effect::Equals(_, _) | Effect::Numeric(_, _, _) => {}
             Effect::Not(inner) => Transpiler::untype_effect(inner, checker, type_predicates),
             Effect::And(terms) | Effect::Or(terms) | Effect::Xor(terms) => {
                 for term in terms.iter_mut() {

@@ -1089,6 +1089,222 @@ mod tests {
     }
 
     #[test]
+    pub fn function_type_parsing_test() {
+        // a `- number` type applies to the group of functions before it and
+        // is the only type allowed
+        let program = String::from(
+            "(define (domain transport)
+            (:functions
+                (road-length ?l1 ?l2 - location) - number
+                (fuel ?v - vehicle)
+                (total-cost) - number
+            )
+        )",
+        )
+        .into_bytes();
+        let lexer = LexicalAnalyzer::new(&program);
+        match Parser::new(lexer).parse() {
+            Ok(AbstractSyntaxTree::Domain(ast)) => {
+                let names: Vec<&str> = ast.functions.iter().map(|f| f.name).collect();
+                assert_eq!(names, vec!["road-length", "fuel", "total-cost"]);
+                assert_eq!(ast.functions[0].variables.len(), 2);
+                assert_eq!(ast.functions[0].variables[1].symbol_type, Some("location"));
+                assert_eq!(ast.functions[2].variables.len(), 0);
+            }
+            _ => panic!("parsing errors"),
+        }
+
+        let program = String::from(
+            "(define (domain transport)
+            (:functions (owner ?v - vehicle) - agent)
+        )",
+        )
+        .into_bytes();
+        let lexer = LexicalAnalyzer::new(&program);
+        match Parser::new(lexer).parse() {
+            Err(ParsingError::Syntactic(error)) => {
+                assert_eq!(error.expected, "'number' as the type of the function");
+                assert_eq!(error.found, "Identifier agent");
+                assert_eq!(error.position.line, 2);
+            }
+            Err(error) => panic!("{:?}", error),
+            Ok(_) => panic!("an object-valued function was accepted"),
+        }
+    }
+
+    #[test]
+    pub fn numeric_effect_parsing_test() {
+        let program = String::from(
+            "(define (domain transport)
+                (:action drive
+                :parameters (?v - vehicle ?l1 ?l2 - location)
+                :effect (and
+                    (at ?v ?l2)
+                    (increase (total-cost) (road-length ?l1 ?l2))
+                    (decrease (fuel ?v) 2.5)
+                    (assign (fuel ?v) 0)
+                    (scale-up (fuel ?v) 2)
+                    (scale-down total-cost capacity)
+                )
+                )
+            )",
+        )
+        .into_bytes();
+        let lexer = LexicalAnalyzer::new(&program);
+        match Parser::new(lexer).parse() {
+            Ok(AbstractSyntaxTree::Domain(ast)) => {
+                let Some(Effect::And(effects)) = &ast.actions[0].effects else {
+                    panic!("wrong effect")
+                };
+                assert_eq!(effects.len(), 6);
+                // (increase (total-cost) (road-length ?l1 ?l2)): a fluent operand
+                match effects[1].as_ref() {
+                    Effect::Numeric(AssignmentOperator::Increase, fluent, operand) => {
+                        assert_eq!(fluent.name, "total-cost");
+                        assert!(fluent.variables.is_empty());
+                        match operand {
+                            NumericExpr::Fluent(read) => {
+                                assert_eq!(read.name, "road-length");
+                                let args: Vec<&str> =
+                                    read.variables.iter().map(|v| v.name).collect();
+                                assert_eq!(args, vec!["?l1", "?l2"]);
+                            }
+                            _ => panic!("wrong operand"),
+                        }
+                    }
+                    _ => panic!("wrong effect"),
+                }
+                // the remaining operators, with real and integer operands
+                match effects[2].as_ref() {
+                    Effect::Numeric(
+                        AssignmentOperator::Decrease,
+                        fluent,
+                        NumericExpr::Number(NumberType::Real(amount)),
+                    ) => {
+                        assert_eq!(fluent.name, "fuel");
+                        assert_eq!(fluent.variables[0].name, "?v");
+                        assert_eq!(*amount, 2.5);
+                    }
+                    _ => panic!("wrong effect"),
+                }
+                assert!(matches!(
+                    effects[3].as_ref(),
+                    Effect::Numeric(
+                        AssignmentOperator::Assign,
+                        _,
+                        NumericExpr::Number(NumberType::Integer(0))
+                    )
+                ));
+                assert!(matches!(
+                    effects[4].as_ref(),
+                    Effect::Numeric(
+                        AssignmentOperator::ScaleUp,
+                        _,
+                        NumericExpr::Number(NumberType::Integer(2))
+                    )
+                ));
+                // bare function symbols stand for nullary fluents
+                match effects[5].as_ref() {
+                    Effect::Numeric(AssignmentOperator::ScaleDown, fluent, operand) => {
+                        assert_eq!(fluent.name, "total-cost");
+                        assert!(fluent.variables.is_empty());
+                        match operand {
+                            NumericExpr::Fluent(read) => {
+                                assert_eq!(read.name, "capacity");
+                                assert!(read.variables.is_empty());
+                            }
+                            _ => panic!("wrong operand"),
+                        }
+                    }
+                    _ => panic!("wrong effect"),
+                }
+                // numeric effects are atomic
+                assert!(
+                    ast.actions[0]
+                        .effects
+                        .as_ref()
+                        .unwrap()
+                        .is_simple_conjunction()
+                );
+                // and print back in keyword form
+                assert_eq!(
+                    effects[1].to_string(),
+                    "(increase (total-cost) (road-length ?l1 ?l2))"
+                );
+                assert_eq!(effects[2].to_string(), "(decrease (fuel ?v) 2.5)");
+                assert_eq!(
+                    effects[5].to_string(),
+                    "(scale-down (total-cost) (capacity))"
+                );
+            }
+            _ => panic!("parsing errors"),
+        }
+    }
+
+    #[test]
+    pub fn malformed_numeric_effect_test() {
+        // the updated side must be a fluent
+        let program = String::from(
+            "(define (domain transport)
+                (:action drive
+                :parameters (?v - vehicle)
+                :effect (increase 1 (fuel ?v))
+                )
+            )",
+        )
+        .into_bytes();
+        let lexer = LexicalAnalyzer::new(&program);
+        match Parser::new(lexer).parse() {
+            Err(ParsingError::Syntactic(error)) => {
+                assert_eq!(error.expected, "the fluent updated by increase");
+                assert_eq!(error.found, "1");
+                assert_eq!(error.position.line, 4);
+            }
+            Err(error) => panic!("{:?}", error),
+            Ok(_) => panic!("a number was accepted as the updated fluent"),
+        }
+        // an operand is a number or a fluent
+        let program = String::from(
+            "(define (domain transport)
+                (:action drive
+                :parameters (?v - vehicle)
+                :effect (increase (fuel ?v) (and (fuel ?v)))
+                )
+            )",
+        )
+        .into_bytes();
+        let lexer = LexicalAnalyzer::new(&program);
+        match Parser::new(lexer).parse() {
+            Err(ParsingError::Syntactic(error)) => {
+                assert_eq!(error.expected, "a function name");
+                assert_eq!(error.found, "and");
+                assert_eq!(error.position.line, 4);
+            }
+            Err(error) => panic!("{:?}", error),
+            Ok(_) => panic!("a formula was accepted as an operand"),
+        }
+        // exactly one operand
+        let program = String::from(
+            "(define (domain transport)
+                (:action drive
+                :parameters (?v - vehicle)
+                :effect (increase (fuel ?v) 1 2)
+                )
+            )",
+        )
+        .into_bytes();
+        let lexer = LexicalAnalyzer::new(&program);
+        match Parser::new(lexer).parse() {
+            Err(ParsingError::Syntactic(error)) => {
+                assert_eq!(error.expected, "')' to close the increase effect");
+                assert_eq!(error.found, "Number 2");
+            }
+            Err(error) => panic!("{:?}", error),
+            Ok(_) => panic!("a second operand was accepted"),
+        }
+    }
+
+    #[test]
     pub fn comment_test() {
         let program = String::from(
             ";author: me

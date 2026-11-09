@@ -217,6 +217,47 @@ impl<'a> Parser<'a> {
                             }
                         }
                     }
+                    // Numeric effect: an update of a fluent by a number or another fluent
+                    Token::Operator(
+                        operator @ (OperationType::Assign
+                        | OperationType::Increase
+                        | OperationType::Decrease
+                        | OperationType::ScaleUp
+                        | OperationType::ScaleDown),
+                    ) => {
+                        let operator = match operator {
+                            OperationType::Assign => AssignmentOperator::Assign,
+                            OperationType::Increase => AssignmentOperator::Increase,
+                            OperationType::Decrease => AssignmentOperator::Decrease,
+                            OperationType::ScaleUp => AssignmentOperator::ScaleUp,
+                            _ => AssignmentOperator::ScaleDown,
+                        };
+                        let fluent = match self.parse_numeric_expr()? {
+                            NumericExpr::Fluent(fluent) => fluent,
+                            NumericExpr::Number(number) => {
+                                let error = SyntacticError {
+                                    expected: format!("the fluent updated by {}", operator),
+                                    found: number.to_string(),
+                                    position: self.tokenizer.get_last_token_position(),
+                                };
+                                return Err(ParsingError::Syntactic(error));
+                            }
+                        };
+                        let operand = self.parse_numeric_expr()?;
+                        match self.tokenizer.get_token()? {
+                            Token::Punctuator(PunctuationType::RParentheses) => {
+                                Ok(Effect::Numeric(operator, fluent, operand))
+                            }
+                            token => {
+                                let error = SyntacticError {
+                                    expected: format!("')' to close the {} effect", operator),
+                                    found: token.to_string(),
+                                    position: self.tokenizer.get_last_token_position(),
+                                };
+                                Err(ParsingError::Syntactic(error))
+                            }
+                        }
+                    }
                     // Single Atom
                     Token::Identifier(name) => {
                         let predicate = Predicate {
@@ -240,6 +281,29 @@ impl<'a> Parser<'a> {
             token => {
                 let error = SyntacticError {
                     expected: "a (potentially empty) boolean formula definition".to_string(),
+                    found: token.to_string(),
+                    position: self.tokenizer.get_last_token_position(),
+                };
+                Err(ParsingError::Syntactic(error))
+            }
+        }
+    }
+
+    // a number, or a fluent written as (name args...) or as a bare name
+    pub fn parse_numeric_expr(&self) -> Result<NumericExpr<'a>, ParsingError> {
+        match self.tokenizer.get_token()? {
+            Token::Number(number) => Ok(NumericExpr::Number(number)),
+            Token::Punctuator(PunctuationType::LParentheses) => {
+                Ok(NumericExpr::Fluent(self.parse_function()?))
+            }
+            Token::Identifier(name) => Ok(NumericExpr::Fluent(Function {
+                name,
+                name_pos: self.tokenizer.get_last_token_position(),
+                variables: vec![],
+            })),
+            token => {
+                let error = SyntacticError {
+                    expected: "a number or a fluent".to_string(),
                     found: token.to_string(),
                     position: self.tokenizer.get_last_token_position(),
                 };

@@ -28,6 +28,7 @@ impl<'a> DomainSemanticAnalyzer<'a> {
         let mut warnings = vec![];
         // Domain declarations
         let declared_predicates = self.verify_predicates()?;
+        self.verify_functions()?;
         let declared_tasks = self.verify_compound_tasks()?;
         let mut declared_constants = HashSet::new();
         if let Some(constants) = &self.domain.constants {
@@ -69,28 +70,29 @@ impl<'a> DomainSemanticAnalyzer<'a> {
             }
             // assert precondition predicates are declared
             if let Some(precondition) = &action.preconditions {
-                check_predicate_declarations(
-                    &precondition.get_predicates(true),
-                    &self.domain.predicates,
-                )?;
-                self.type_checker.check_formula(
+                check_declarations(&precondition.get_predicates(true), &self.domain.predicates)?;
+                self.type_checker.check_calls(
                     &precondition.get_predicates(false),
                     &action.parameters,
                     &declared_constants,
-                    &declared_predicates,
-                )?;
-            }
-            // assert effect predicates are declared
-            if let Some(effect) = &action.effects {
-                check_predicate_declarations(
-                    &effect.get_predicates(true),
                     &self.domain.predicates,
                 )?;
-                self.type_checker.check_formula(
+            }
+            // assert effect predicates and fluents are declared
+            if let Some(effect) = &action.effects {
+                check_declarations(&effect.get_predicates(true), &self.domain.predicates)?;
+                self.type_checker.check_calls(
                     &effect.get_predicates(false),
                     &action.parameters,
                     &declared_constants,
-                    &declared_predicates,
+                    &self.domain.predicates,
+                )?;
+                check_declarations(&effect.get_fluents(true), &self.domain.functions)?;
+                self.type_checker.check_calls(
+                    &effect.get_fluents(false),
+                    &action.parameters,
+                    &declared_constants,
+                    &self.domain.functions,
                 )?;
             }
         }
@@ -128,15 +130,12 @@ impl<'a> DomainSemanticAnalyzer<'a> {
             }
             // Assert preconditions are valid
             if let Some(precondition) = &method.precondition {
-                check_predicate_declarations(
-                    &precondition.get_predicates(true),
-                    &self.domain.predicates,
-                )?;
-                self.type_checker.check_formula(
+                check_declarations(&precondition.get_predicates(true), &self.domain.predicates)?;
+                self.type_checker.check_calls(
                     &precondition.get_predicates(false),
                     &method.params,
                     &declared_constants,
-                    &declared_predicates,
+                    &self.domain.predicates,
                 )?;
             }
             // Assert task is defined
@@ -240,6 +239,30 @@ impl<'a> DomainSemanticAnalyzer<'a> {
             }
         }
         Ok(declared_predicates)
+    }
+
+    // functions are identified by name and arity, like predicates
+    fn verify_functions(&'a self) -> Result<(), SemanticErrorType> {
+        let mut function_positions = HashMap::new();
+        for function in self.domain.functions.iter() {
+            let identity = (function.name, function.variables.len());
+            if let Some(first_pos) = function_positions.insert(identity, function.name_pos) {
+                return Err(SemanticErrorType::DuplicateFunctionDeclaration(
+                    DuplicateError {
+                        symbol: function.name.to_string(),
+                        first_pos,
+                        second_pos: function.name_pos,
+                    },
+                ));
+            }
+            if let Some(error) = self
+                .type_checker
+                .check_type_declarations(&function.variables)
+            {
+                return Err(error);
+            }
+        }
+        Ok(())
     }
 
     // returns declared compound tasks (if there is no error)

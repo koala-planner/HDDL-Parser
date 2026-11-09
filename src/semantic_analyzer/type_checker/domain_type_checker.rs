@@ -30,13 +30,15 @@ impl<'a> DomainTypeChecker<'a> {
         self.generic_type_checker.verify_type_hierarchy()
     }
 
+    // every argument of a call must be a parameter or a constant whose type
+    // fits the declaration; calls are resolved by name and arity
     // TODO: Add support for "universal qunatification" parameters
-    pub fn check_formula(
+    pub fn check_calls<C: Call<'a>>(
         &self,
-        formula: &Vec<&Predicate<'a>>,
+        calls: &[&C],
         parameters: &Vec<Symbol<'a>>,
         declared_constants: &HashSet<&Symbol<'a>>,
-        declared_predicates: &HashSet<&'a Predicate<'a>>,
+        declared: &[C],
     ) -> Result<(), SemanticErrorType> {
         // Assert all types are declared
         if let Some(undeclared_type) = self
@@ -48,65 +50,48 @@ impl<'a> DomainTypeChecker<'a> {
         // Store parameter types
         let par_types: HashMap<&str, Option<&str>> =
             HashMap::from_iter(parameters.iter().map(|par| (par.name, par.symbol_type)));
-        // Assert predicate typing correctness
-        for instantiated_predicate in formula {
-            match declared_predicates.get(instantiated_predicate) {
-                Some(predicate_definition) => {
-                    let mut instantiated_vars = vec![];
-                    for var in instantiated_predicate.variables.iter() {
-                        match par_types.get(var.name) {
-                            Some(par_type) => {
-                                instantiated_vars.push((var, par_type));
-                            }
-                            None => match declared_constants.get(var) {
-                                Some(constant) => {
-                                    instantiated_vars.push((var, &constant.symbol_type))
-                                }
-                                None => {
-                                    return Err(SemanticErrorType::UndefinedParameter(
-                                        UndefinedSymbolError {
-                                            symbol: var.name.to_string(),
-                                            position: var.name_pos,
-                                        },
-                                    ));
-                                }
-                            },
-                        }
-                    }
-                    let expected_list: Vec<&Option<&str>> = predicate_definition
-                        .variables
-                        .iter()
-                        .map(|x| &x.symbol_type)
-                        .collect();
-                    // Assert args have the same arity
-                    if instantiated_vars.len() != expected_list.len() {
-                        return Err(SemanticErrorType::InconsistentPredicateArity(ArityError {
-                            symbol: instantiated_predicate.name.to_string(),
-                            expected_arity: expected_list.len() as u32,
-                            found_arity: instantiated_vars.len() as u32,
-                            position: instantiated_predicate.name_pos,
-                        }));
-                    }
-                    for ((var, f), e) in instantiated_vars.into_iter().zip(expected_list) {
-                        if !self.generic_type_checker.is_var_type_consistent(*f, *e) {
-                            return Err(SemanticErrorType::InconsistentPredicateArgType(
-                                TypeError {
-                                    expected: e.map(|inner| inner.to_string()),
-                                    found: f.map(|inner| inner.to_string()),
-                                    var_name: var.name.to_string(),
-                                    position: var.name_pos,
+        for call in calls {
+            let declaration = declared.iter().find(|declaration| {
+                declaration.name() == call.name()
+                    && declaration.symbols().len() == call.symbols().len()
+            });
+            let Some(declaration) = declaration else {
+                return Err(C::undefined(UndefinedSymbolError {
+                    symbol: call.name().to_string(),
+                    position: call.name_pos(),
+                }));
+            };
+            // resolve every argument to its type before comparing any
+            let mut arguments = vec![];
+            for argument in call.symbols() {
+                let found = match par_types.get(argument.name) {
+                    Some(par_type) => *par_type,
+                    None => match declared_constants.get(argument) {
+                        Some(constant) => constant.symbol_type,
+                        None => {
+                            return Err(SemanticErrorType::UndefinedParameter(
+                                UndefinedSymbolError {
+                                    symbol: argument.name.to_string(),
+                                    position: argument.name_pos,
                                 },
                             ));
                         }
-                    }
-                }
-                None => {
-                    return Err(SemanticErrorType::UndefinedPredicate(
-                        UndefinedSymbolError {
-                            symbol: instantiated_predicate.name.to_string(),
-                            position: instantiated_predicate.name_pos,
-                        },
-                    ));
+                    },
+                };
+                arguments.push((argument, found));
+            }
+            for ((argument, found), parameter) in arguments.into_iter().zip(declaration.symbols()) {
+                let expected = parameter.symbol_type;
+                if !self
+                    .generic_type_checker
+                    .is_var_type_consistent(found, expected)
+                {
+                    return Err(C::inconsistent_arg_type(TypeError {
+                        expected: expected.map(|inner| inner.to_string()),
+                        found: found.map(|inner| inner.to_string()),
+                        var_name: argument.name.to_string(),
+                        position: argument.name_pos,
+                    }));
                 }
             }
         }

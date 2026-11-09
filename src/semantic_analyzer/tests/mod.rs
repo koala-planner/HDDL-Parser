@@ -1,5 +1,6 @@
 mod cycle_detection_tests;
 mod duplicate_tests;
+mod function_tests;
 mod problem_test;
 mod tdg_tests;
 mod type_checking_tests;

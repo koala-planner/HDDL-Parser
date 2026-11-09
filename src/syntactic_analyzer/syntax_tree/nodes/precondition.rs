@@ -329,15 +329,7 @@ impl<'a> Precondition<'a> {
     pub fn substitute(&self, var: &str, value: &Symbol<'a>) -> Precondition<'a> {
         match self {
             Precondition::Empty => Precondition::Empty,
-            Precondition::Atom(predicate) => {
-                let mut predicate = predicate.clone();
-                for symbol in predicate.variables.iter_mut() {
-                    if symbol.name == var {
-                        *symbol = value.clone();
-                    }
-                }
-                Precondition::Atom(predicate)
-            }
+            Precondition::Atom(predicate) => Precondition::Atom(predicate.substitute(var, value)),
             Precondition::Not(inner) => Precondition::Not(Box::new(inner.substitute(var, value))),
             Precondition::And(terms) => Precondition::And(
                 terms

@@ -1,4 +1,5 @@
 mod analyzers;
+mod call;
 mod tdg;
 #[cfg(test)]
 mod tests;
@@ -7,6 +8,7 @@ mod undefined_elements;
 
 use crate::output::*;
 use crate::syntactic_analyzer::*;
+use call::*;
 use type_checker::*;
 use undefined_elements::*;
 

@@ -117,7 +117,7 @@ fn replace_effect_equals<'a>(effect: &mut Effect<'a>, name: &'a str) {
             let (lhs, rhs) = (*lhs, *rhs);
             *effect = Effect::Atom(equal_predicate(name, lhs, rhs));
         }
-        Effect::Empty | Effect::Atom(_) => {}
+        Effect::Empty | Effect::Atom(_) | Effect::Numeric(_, _, _) => {}
         Effect::Not(inner) | Effect::Exists(_, inner) | Effect::ForAll(_, inner) => {
             replace_effect_equals(inner, name)
         }

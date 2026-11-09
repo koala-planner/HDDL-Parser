@@ -110,6 +110,11 @@ pub enum RequirementType {
     ConditionalEffects,
     DomainAxioms,
     ADL,
+    // numeric fluents: PDDL 2.1 spelling, PDDL 3.1 spelling, and the
+    // action-cost fragment (increase of total-cost only)
+    Fluents,
+    NumericFluents,
+    ActionCosts,
 }
 
 impl fmt::Display for RequirementType {
@@ -128,6 +133,9 @@ impl fmt::Display for RequirementType {
             RequirementType::ConditionalEffects => ":conditional-effects",
             RequirementType::DomainAxioms => ":domain-axioms",
             RequirementType::ADL => ":adl",
+            RequirementType::Fluents => ":fluents",
+            RequirementType::NumericFluents => ":numeric-fluents",
+            RequirementType::ActionCosts => ":action-costs",
         };
         write!(f, "{}", requirement)
     }

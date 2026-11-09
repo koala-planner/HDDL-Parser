@@ -7,9 +7,23 @@ impl<'a> Parser<'a> {
         while !finished {
             match self.tokenizer.get_token()? {
                 Token::Punctuator(PunctuationType::LParentheses) => {
-                    let function = self.parse_function_definition()?;
+                    let function = self.parse_function()?;
                     functions.push(function);
                 }
+                // an optional result type for the preceding functions; every
+                // function is numeric, so only `number` is accepted and
+                // nothing is recorded
+                Token::Punctuator(PunctuationType::Dash) => match self.tokenizer.get_token()? {
+                    Token::Identifier("number") => {}
+                    token => {
+                        let error = SyntacticError {
+                            expected: "'number' as the type of the function".to_string(),
+                            found: token.to_string(),
+                            position: self.tokenizer.get_last_token_position(),
+                        };
+                        return Err(ParsingError::Syntactic(error));
+                    }
+                },
                 Token::Punctuator(PunctuationType::RParentheses) => {
                     finished = true;
                 }
@@ -26,8 +40,9 @@ impl<'a> Parser<'a> {
         Ok(functions)
     }
 
-    // parses a SINGLE function definition
-    fn parse_function_definition(&self) -> Result<Function<'a>, ParsingError> {
+    // parses a function name with its arguments, after the opening '(': a
+    // declaration in :functions, or a fluent in a numeric effect
+    pub fn parse_function(&self) -> Result<Function<'a>, ParsingError> {
         match self.tokenizer.get_token()? {
             Token::Identifier(function_name) => Ok(Function {
                 name: function_name,

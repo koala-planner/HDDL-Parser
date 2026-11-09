@@ -127,7 +127,7 @@ impl<'a> Transpiler<'a> {
                     Self::expand_quantified_effects(effect, problem, type_checker);
                 }
             }
-            Effect::Empty | Effect::Atom(_) | Effect::Equals(_, _) => {}
+            Effect::Empty | Effect::Atom(_) | Effect::Equals(_, _) | Effect::Numeric(_, _, _) => {}
         }
     }
 
