@@ -47,6 +47,9 @@ impl<'a> LexicalAnalyzer<'a> {
             match char {
                 // Punctuations
                 '-' => Ok(Token::Punctuator(PunctuationType::Dash)),
+                // Arithmetic
+                '+' => Ok(Token::Operator(OperationType::Addition)),
+                '*' => Ok(Token::Operator(OperationType::Multiplication)),
                 '(' => Ok(Token::Punctuator(PunctuationType::LParentheses)),
                 ')' => Ok(Token::Punctuator(PunctuationType::RParentheses)),
                 // Ordering Relations
@@ -130,6 +133,7 @@ impl<'a> LexicalAnalyzer<'a> {
                         "ordering" | "order" => Ok(Token::Keyword(KeywordName::Ordering)),
                         "constraints" => Ok(Token::Keyword(KeywordName::Constraints)),
                         "goal" => Ok(Token::Keyword(KeywordName::Goal)),
+                        "metric" => Ok(Token::Keyword(KeywordName::Metric)),
                         "domain" => Ok(Token::Keyword(KeywordName::Domain)),
                         "problem" => Ok(Token::Keyword(KeywordName::Problem)),
                         _ => Err(LexicalError {

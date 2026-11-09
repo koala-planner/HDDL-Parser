@@ -7,7 +7,8 @@ use std::collections::HashSet;
 pub struct SymbolTable<'a> {
     pub warnings: Vec<WarningType>,
     pub constants: HashSet<&'a Symbol<'a>>,
-    pub predicates: HashSet<&'a Predicate<'a>>,
+    pub predicates: &'a [Predicate<'a>],
+    pub functions: &'a [Function<'a>],
     pub tasks: HashSet<&'a Task<'a>>,
     pub actions: HashSet<&'a Action<'a>>,
     pub type_hierarchy: GraphMap<&'a str, (), Directed>,

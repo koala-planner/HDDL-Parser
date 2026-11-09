@@ -395,10 +395,12 @@ pub fn p_inconsistent_goal_predicate_test() {
                             panic!("error not found")
                         }
                         Err(d) => match d {
-                            SemanticErrorType::UndefinedPredicate(x) => {
+                            SemanticErrorType::InconsistentPredicateArity(x) => {
                                 assert_eq!(x.symbol, "at");
+                                assert_eq!(x.expected_arity, 2);
+                                assert_eq!(x.found_arity, 1);
                             }
-                            _ => panic!(),
+                            token => panic!("{:?}", token),
                         },
                     }
                 }
@@ -450,9 +452,9 @@ pub fn p_inconsistent_init_predicate_test() {
                         }
                         Err(d) => match d {
                             SemanticErrorType::InconsistentPredicateArgType(ty) => {
-                                if ty.var_name != "at" {
-                                    panic!("wrong error")
-                                }
+                                // the offending argument and the type it was declared with
+                                assert_eq!(ty.var_name, "crate1");
+                                assert_eq!(ty.found.as_deref(), Some("crate"));
                             }
                             token => panic!("{:?}", token),
                         },

@@ -27,7 +27,7 @@ impl<'a> DomainSemanticAnalyzer<'a> {
         self.type_checker.verify_type_hierarchy()?;
         let mut warnings = vec![];
         // Domain declarations
-        let declared_predicates = self.verify_predicates()?;
+        self.verify_predicates()?;
         self.verify_functions()?;
         let declared_tasks = self.verify_compound_tasks()?;
         let mut declared_constants = HashSet::new();
@@ -208,15 +208,16 @@ impl<'a> DomainSemanticAnalyzer<'a> {
         Ok(SymbolTable {
             warnings,
             constants: declared_constants,
-            predicates: declared_predicates,
+            predicates: &self.domain.predicates,
+            functions: &self.domain.functions,
             tasks: declared_tasks,
             actions: declared_actions,
             type_hierarchy,
         })
     }
 
-    // returns declared predicates (if there is no error)
-    fn verify_predicates(&'a self) -> Result<HashSet<&'a Predicate<'a>>, SemanticErrorType> {
+    // predicates are identified by name and arity
+    fn verify_predicates(&'a self) -> Result<(), SemanticErrorType> {
         let mut declared_predicates = HashSet::new();
         let mut predicate_positions = HashMap::new();
         for predicate in self.domain.predicates.iter() {
@@ -238,7 +239,7 @@ impl<'a> DomainSemanticAnalyzer<'a> {
                 return Err(error);
             }
         }
-        Ok(declared_predicates)
+        Ok(())
     }
 
     // functions are identified by name and arity, like predicates

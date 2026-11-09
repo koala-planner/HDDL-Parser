@@ -43,9 +43,15 @@ impl<'a> ProblemSemanticAnalyzer<'a> {
             }
         }
 
-        // check the consistency of init predicates
+        // check the consistency of the initial state: atoms and fluent values
+        let symbols = &self.type_checker.symbol_table;
         for predicate in self.problem.init_state.iter() {
-            self.type_checker.check_predicate_instantiation(predicate)?;
+            self.type_checker
+                .check_instantiation(predicate, symbols.predicates)?;
+        }
+        for value in self.problem.init_values.iter().flatten() {
+            self.type_checker
+                .check_instantiation(&value.fluent, symbols.functions)?;
         }
 
         // check the initial task network
@@ -65,7 +71,18 @@ impl<'a> ProblemSemanticAnalyzer<'a> {
         // check goal description
         if let Some(goal) = &self.problem.goal {
             for predicate in goal.get_predicates(false) {
-                self.type_checker.check_predicate_instantiation(predicate)?;
+                self.type_checker
+                    .check_instantiation(predicate, symbols.predicates)?;
+            }
+        }
+
+        // check the fluents the metric measures
+        if let Some(Metric::Minimize(expression) | Metric::Maximize(expression)) =
+            &self.problem.metric
+        {
+            for fluent in expression.get_fluents() {
+                self.type_checker
+                    .check_instantiation(fluent, symbols.functions)?;
             }
         }
 

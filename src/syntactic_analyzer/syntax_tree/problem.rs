@@ -14,8 +14,12 @@ pub struct ProblemAST<'a> {
     #[serde(default)]
     pub init_tn: Option<InitialTaskNetwork<'a>>,
     pub init_state: Vec<Predicate<'a>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub init_values: Option<Vec<FluentValue<'a>>>,
     #[serde(default)]
     pub goal: Option<Precondition<'a>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub metric: Option<Metric<'a>>,
     #[serde(borrow)]
     pub objects: Vec<Symbol<'a>>,
 }
@@ -28,7 +32,9 @@ impl<'a> ProblemAST<'a> {
             requirements: vec![],
             init_tn: None,
             init_state: vec![],
+            init_values: None,
             goal: None,
+            metric: None,
             objects: vec![],
         }
     }
@@ -87,20 +93,29 @@ impl<'a> fmt::Display for ProblemAST<'a> {
         if let Some(init_tn) = &self.init_tn {
             write!(f, "\n\t{}\n", init_tn.to_string().replace('\n', "\n\t"))?;
         }
-        if !self.init_state.is_empty() {
+        // atoms first, then the initial values of fluents
+        let items: Vec<String> = self
+            .init_state
+            .iter()
+            .map(ToString::to_string)
+            .chain(self.init_values.iter().flatten().map(ToString::to_string))
+            .collect();
+        if !items.is_empty() {
             write!(
                 f,
                 "\n\t{}\n",
-                format_block(":init", &self.init_state).replace('\n', "\n\t")
+                format_block(":init", &items).replace('\n', "\n\t")
             )?;
         }
-        // the parser only accepts :goal as the last block of a problem
         if let Some(goal) = &self.goal {
             write!(
                 f,
                 "\n\t(:goal {})\n",
                 goal.to_string().replace('\n', "\n\t")
             )?;
+        }
+        if let Some(metric) = &self.metric {
+            write!(f, "\n\t{}\n", metric)?;
         }
         write!(f, "\n)")
     }

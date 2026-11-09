@@ -1184,7 +1184,7 @@ pub fn quantifier_elimination_grounds_numeric_effects_test() {
          :effect (forall (?l - location) (and
             (visited ?l)
             (increase (visits ?l) 1)
-            (increase (total-cost) (distance ?start ?l))))
+            (increase (total-cost) (+ (distance ?start ?l) 1))))
         )
     )";
     let problem = "(define (problem p_qe) (:domain qe)
@@ -1217,8 +1217,11 @@ pub fn quantifier_elimination_grounds_numeric_effects_test() {
             other => panic!("expected (increase (visits {location}) 1), got {other}"),
         }
         match conjuncts[2].as_ref() {
-            Effect::Numeric(AssignmentOperator::Increase, fluent, NumericExpr::Fluent(read)) => {
+            Effect::Numeric(AssignmentOperator::Increase, fluent, NumericExpr::Sum(terms)) => {
                 assert_eq!(fluent.name, "total-cost");
+                let NumericExpr::Fluent(read) = &terms[0] else {
+                    panic!("expected a fluent term, got {}", terms[0])
+                };
                 assert_eq!(read.name, "distance");
                 let args: Vec<&str> = read.variables.iter().map(|v| v.name).collect();
                 assert_eq!(args, vec!["?start", location]);
@@ -1226,4 +1229,120 @@ pub fn quantifier_elimination_grounds_numeric_effects_test() {
             other => panic!("expected an increase by (distance ?start {location}), got {other}"),
         }
     }
+}
+
+#[test]
+pub fn numeric_problem_round_trip_test() {
+    assert_problem_round_trip(
+        "(define (problem p_transport) (:domain transport)
+
+	(:requirements :typing :action-costs)
+
+	(:objects
+		truck_0 - vehicle
+		loc_0 - location
+		loc_1 - location
+	)
+
+	(:init
+		(at truck_0 loc_0)
+		(road loc_0 loc_1)
+		(= (total-cost) 0)
+		(= (road-length loc_0 loc_1) 22)
+	)
+
+	(:goal (at truck_0 loc_1))
+
+	(:metric minimize (+ (total-cost) (* 2 (road-length loc_0 loc_1))))
+
+)",
+    );
+    // a single inline value, an empty goal, and a maximised fluent
+    assert_problem_round_trip(
+        "(define (problem p_reward) (:domain d)
+
+	(:init (= (reward) 2.5))
+
+	(:goal ())
+
+	(:metric maximize (reward))
+
+)",
+    );
+}
+
+#[test]
+pub fn numeric_effect_arithmetic_round_trip_test() {
+    assert_domain_round_trip(
+        "(define (domain sums)
+
+	(:functions
+		(a ?x - loc)
+		(b)
+	)
+
+	(:action act
+	 :parameters (?x - loc)
+	 :effect (increase (b) (+ (a ?x) (* 2 (b)) 1))
+	)
+
+)",
+    );
+}
+
+#[test]
+pub fn numeric_problem_pipeline_test() {
+    let domain = "(define (domain transport)
+        (:requirements :typing :action-costs)
+        (:types vehicle location)
+        (:predicates (at ?v - vehicle ?l - location) (road ?l1 ?l2 - location))
+        (:functions (road-length ?l1 ?l2 - location) (total-cost))
+        (:action drive
+         :parameters (?v - vehicle ?l1 ?l2 - location)
+         :precondition (and (at ?v ?l1) (road ?l1 ?l2))
+         :effect (and
+            (not (at ?v ?l1))
+            (at ?v ?l2)
+            (increase (total-cost) (road-length ?l1 ?l2)))
+        )
+    )";
+    let problem = "(define (problem p_transport) (:domain transport)
+
+	(:objects
+		truck_0 - vehicle
+		loc_0 - location
+		loc_1 - location
+	)
+
+	(:init
+		(at truck_0 loc_0)
+		(road loc_0 loc_1)
+		(= (total-cost) 0)
+		(= (road-length loc_0 loc_1) 22)
+	)
+
+	(:goal (at truck_0 loc_1))
+
+	(:metric minimize (total-cost))
+
+)";
+    let domain_bytes = domain.as_bytes().to_vec();
+    let problem_bytes = problem.as_bytes().to_vec();
+    let program = HDDLProgram::from_hddl(&domain_bytes, Some(&problem_bytes)).unwrap();
+    program.verify().unwrap();
+    let transpiler = Transpiler::new(program);
+    let (_, printed_problem) = transpiler.to_hddl();
+    assert_eq!(printed_problem.as_deref(), Some(problem));
+    // the JSON export carries both new fields and is stable under re-import
+    let json = transpiler.to_json();
+    assert!(json.contains("\"init_values\""));
+    assert!(json.contains("\"metric\""));
+    let atoms_only = "(define (problem p_plain) (:domain transport) (:init (at truck_0 loc_0)))";
+    let atoms_only = atoms_only.as_bytes().to_vec();
+    let plain = Transpiler::new(HDDLProgram::from_hddl(&domain_bytes, Some(&atoms_only)).unwrap());
+    assert!(!plain.to_json().contains("\"init_values\""));
+    assert!(!plain.to_json().contains("\"metric\""));
+    let reimported = HDDLProgram::from_json(&json).unwrap();
+    reimported.verify().unwrap();
+    assert_eq!(Transpiler::new(reimported).to_json(), json);
 }

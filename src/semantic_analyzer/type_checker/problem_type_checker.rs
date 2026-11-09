@@ -33,76 +33,41 @@ impl<'a> ProblemTypeChecker<'a> {
             .check_type_declarations(parameters)
     }
 
-    pub fn check_predicate_instantiation(
+    // a ground call of the problem: declared at this arity, with every
+    // argument an object or constant whose type fits the declaration
+    pub fn check_instantiation<C: Call<'a>>(
         &self,
-        predicate: &'a Predicate<'a>,
+        call: &C,
+        declared: &[C],
     ) -> Result<(), SemanticErrorType> {
-        match &self.symbol_table.predicates.get(predicate) {
-            Some(definition) => {
-                if definition.variables.len() != predicate.variables.len() {
-                    return Err(SemanticErrorType::InconsistentPredicateArity(ArityError {
-                        symbol: predicate.name.to_string(),
-                        expected_arity: definition.variables.len() as u32,
-                        found_arity: predicate.variables.len() as u32,
-                        position: predicate.name_pos,
-                    }));
-                }
-                for (expected, found) in definition.variables.iter().zip(predicate.variables.iter())
-                {
-                    match self.objects.get(found.name) {
-                        Some(object_type) => {
-                            let is_consistent = self
-                                .generic_type_checker
-                                .is_var_type_consistent(*object_type, expected.symbol_type);
-                            if !is_consistent {
-                                return Err(SemanticErrorType::InconsistentPredicateArgType(
-                                    TypeError {
-                                        expected: expected.symbol_type.map(String::from),
-                                        found: found.symbol_type.map(String::from),
-                                        var_name: predicate.name.to_string(),
-                                        position: found.name_pos,
-                                    },
-                                ));
-                            }
-                        }
-                        None => match self.symbol_table.constants.get(&found.name) {
-                            Some(constant) => {
-                                let is_consistent =
-                                    self.generic_type_checker.is_var_type_consistent(
-                                        constant.symbol_type,
-                                        expected.symbol_type,
-                                    );
-                                if !is_consistent {
-                                    return Err(SemanticErrorType::InconsistentPredicateArgType(
-                                        TypeError {
-                                            expected: expected.symbol_type.map(String::from),
-                                            found: constant.symbol_type.map(String::from),
-                                            var_name: predicate.name.to_string(),
-                                            position: found.name_pos,
-                                        },
-                                    ));
-                                }
-                            }
-                            None => {
-                                return Err(SemanticErrorType::UndefinedObject(
-                                    UndefinedSymbolError {
-                                        symbol: found.name.to_string(),
-                                        position: found.name_pos,
-                                    },
-                                ));
-                            }
-                        },
+        let declaration = find_declaration(call, declared)?;
+        for (argument, parameter) in call.symbols().iter().zip(declaration.symbols()) {
+            let found = match self.objects.get(argument.name) {
+                Some(object_type) => *object_type,
+                None => match self.symbol_table.constants.get(&argument.name) {
+                    Some(constant) => constant.symbol_type,
+                    None => {
+                        return Err(SemanticErrorType::UndefinedObject(UndefinedSymbolError {
+                            symbol: argument.name.to_string(),
+                            position: argument.name_pos,
+                        }));
                     }
-                }
-                Ok(())
-            }
-            None => Err(SemanticErrorType::UndefinedPredicate(
-                UndefinedSymbolError {
-                    symbol: predicate.name.to_string(),
-                    position: predicate.name_pos,
                 },
-            )),
+            };
+            let expected = parameter.symbol_type;
+            if !self
+                .generic_type_checker
+                .is_var_type_consistent(found, expected)
+            {
+                return Err(C::inconsistent_arg_type(TypeError {
+                    expected: expected.map(String::from),
+                    found: found.map(String::from),
+                    var_name: argument.name.to_string(),
+                    position: argument.name_pos,
+                }));
+            }
         }
+        Ok(())
     }
 
     // TODO: Refactor the redundancies out

@@ -1256,8 +1256,8 @@ mod tests {
         let lexer = LexicalAnalyzer::new(&program);
         match Parser::new(lexer).parse() {
             Err(ParsingError::Syntactic(error)) => {
-                assert_eq!(error.expected, "the fluent updated by increase");
-                assert_eq!(error.found, "1");
+                assert_eq!(error.expected, "a fluent");
+                assert_eq!(error.found, "Number 1");
                 assert_eq!(error.position.line, 4);
             }
             Err(error) => panic!("{:?}", error),
@@ -1301,6 +1301,192 @@ mod tests {
             }
             Err(error) => panic!("{:?}", error),
             Ok(_) => panic!("a second operand was accepted"),
+        }
+    }
+
+    #[test]
+    pub fn numeric_effect_arithmetic_parsing_test() {
+        let program = String::from(
+            "(define (domain transport)
+                (:action drive
+                :parameters (?v - vehicle ?l1 ?l2 - location)
+                :effect (increase (total-cost) (+ (road-length ?l1 ?l2) (* 2 (toll ?l2))))
+                )
+            )",
+        )
+        .into_bytes();
+        match Parser::new(LexicalAnalyzer::new(&program)).parse() {
+            Ok(AbstractSyntaxTree::Domain(ast)) => {
+                let Some(Effect::Numeric(
+                    AssignmentOperator::Increase,
+                    fluent,
+                    NumericExpr::Sum(terms),
+                )) = &ast.actions[0].effects
+                else {
+                    panic!("wrong effect: {:?}", ast.actions[0].effects)
+                };
+                assert_eq!(fluent.name, "total-cost");
+                assert_eq!(terms.len(), 2);
+                assert!(matches!(&terms[1], NumericExpr::Product(factors) if factors.len() == 2));
+                assert_eq!(
+                    ast.actions[0].effects.as_ref().unwrap().to_string(),
+                    "(increase (total-cost) (+ (road-length ?l1 ?l2) (* 2 (toll ?l2))))"
+                );
+            }
+            _ => panic!("parsing errors"),
+        }
+    }
+
+    #[test]
+    pub fn init_values_parsing_test() {
+        let program = String::from(
+            "(define (problem p1) (:domain transport)
+                (:init
+                    (= (total-cost) 0)
+                    (at truck-1 city-1)
+                    (= (road-length city-1 city-2) 22)
+                    (= fuel 3.5)
+                )
+            )",
+        )
+        .into_bytes();
+        match Parser::new(LexicalAnalyzer::new(&program)).parse() {
+            Ok(AbstractSyntaxTree::Problem(ast)) => {
+                assert_eq!(ast.init_state.len(), 1);
+                assert_eq!(ast.init_state[0].name, "at");
+                let values = ast.init_values.as_ref().unwrap();
+                assert_eq!(values.len(), 3);
+                assert_eq!(values[0].fluent.name, "total-cost");
+                assert!(values[0].fluent.variables.is_empty());
+                assert_eq!(values[0].value, NumberType::Integer(0));
+                let args: Vec<&str> = values[1].fluent.variables.iter().map(|v| v.name).collect();
+                assert_eq!(args, vec!["city-1", "city-2"]);
+                assert_eq!(values[1].value, NumberType::Integer(22));
+                // a bare function symbol stands for a nullary fluent
+                assert_eq!(values[2].fluent.name, "fuel");
+                assert!(values[2].fluent.variables.is_empty());
+                assert_eq!(values[2].value, NumberType::Real(3.5));
+                assert_eq!(values[1].to_string(), "(= (road-length city-1 city-2) 22)");
+            }
+            _ => panic!("parsing errors"),
+        }
+        // without numeric values the field stays absent
+        let program =
+            String::from("(define (problem p1) (:domain d) (:init (at a b)))").into_bytes();
+        match Parser::new(LexicalAnalyzer::new(&program)).parse() {
+            Ok(AbstractSyntaxTree::Problem(ast)) => {
+                assert_eq!(ast.init_state.len(), 1);
+                assert!(ast.init_values.is_none());
+            }
+            _ => panic!("parsing errors"),
+        }
+    }
+
+    #[test]
+    pub fn metric_parsing_test() {
+        // the metric follows the goal, which therefore has to be closed properly
+        let program = String::from(
+            "(define (problem p1) (:domain transport)
+                (:goal (and (at p-1 city-1)))
+                (:metric minimize (+ (total-cost) (* 2 (fuel-used truck-1)) 1))
+            )",
+        )
+        .into_bytes();
+        match Parser::new(LexicalAnalyzer::new(&program)).parse() {
+            Ok(AbstractSyntaxTree::Problem(ast)) => {
+                assert!(ast.goal.is_some());
+                let Some(Metric::Minimize(NumericExpr::Sum(terms))) = &ast.metric else {
+                    panic!("wrong metric: {:?}", ast.metric)
+                };
+                assert_eq!(terms.len(), 3);
+                assert!(matches!(&terms[0], NumericExpr::Fluent(f) if f.name == "total-cost"));
+                let NumericExpr::Product(factors) = &terms[1] else {
+                    panic!("wrong product: {}", terms[1])
+                };
+                assert!(matches!(
+                    &factors[0],
+                    NumericExpr::Number(NumberType::Integer(2))
+                ));
+                assert!(matches!(
+                    &factors[1],
+                    NumericExpr::Fluent(f) if f.name == "fuel-used" && f.variables[0].name == "truck-1"
+                ));
+                assert!(matches!(
+                    &terms[2],
+                    NumericExpr::Number(NumberType::Integer(1))
+                ));
+                assert_eq!(
+                    ast.metric.as_ref().unwrap().to_string(),
+                    "(:metric minimize (+ (total-cost) (* 2 (fuel-used truck-1)) 1))"
+                );
+            }
+            _ => panic!("parsing errors"),
+        }
+    }
+
+    #[test]
+    pub fn empty_goal_parsing_test() {
+        // (:goal) declares no goal and (:goal ()) an empty one; neither hides
+        // the blocks after it
+        let program =
+            String::from("(define (problem p1) (:domain d) (:goal) (:metric minimize 1))")
+                .into_bytes();
+        match Parser::new(LexicalAnalyzer::new(&program)).parse() {
+            Ok(AbstractSyntaxTree::Problem(ast)) => {
+                assert!(ast.goal.is_none());
+                assert!(ast.metric.is_some());
+            }
+            _ => panic!("parsing errors"),
+        }
+        let program =
+            String::from("(define (problem p1) (:domain d) (:goal ()) (:metric minimize 1))")
+                .into_bytes();
+        match Parser::new(LexicalAnalyzer::new(&program)).parse() {
+            Ok(AbstractSyntaxTree::Problem(ast)) => {
+                assert!(matches!(ast.goal, Some(Precondition::Empty)));
+                assert!(ast.metric.is_some());
+            }
+            _ => panic!("parsing errors"),
+        }
+    }
+
+    #[test]
+    pub fn malformed_problem_numerics_test() {
+        let cases = [
+            (
+                "(:init (= (total-cost) (fuel)))",
+                "a number as the initial value of the fluent",
+                "(",
+            ),
+            ("(:init (= 5 3))", "a fluent", "Number 5"),
+            (
+                "(:metric minimise (total-cost))",
+                "'minimize' or 'maximize'",
+                "Identifier minimise",
+            ),
+            (
+                "(:metric minimize (total-cost) 1)",
+                "')' to close the metric",
+                "Number 1",
+            ),
+            (
+                "(:metric minimize (+ (total-cost)))",
+                "at least two operands for +",
+                ")",
+            ),
+            ("(:metric minimize (- (a) (b)))", "a function name", "-"),
+            ("(:goal (at a b) (at b c))", "')' to close the goal", "("),
+        ];
+        for (block, expected, found) in cases {
+            let program = format!("(define (problem p1) (:domain d) {})", block).into_bytes();
+            match Parser::new(LexicalAnalyzer::new(&program)).parse() {
+                Err(ParsingError::Syntactic(error)) => {
+                    assert_eq!(error.expected, expected, "{block}");
+                    assert_eq!(error.found, found, "{block}");
+                }
+                Err(error) => panic!("{block}: {:?}", error),
+                Ok(_) => panic!("{block} was accepted"),
+            }
         }
     }
 

@@ -44,13 +44,35 @@ impl<'a> Parser<'a> {
                         }
                         // goal state (optional)
                         Token::Keyword(KeywordName::Goal) => {
-                            let goal = self.parse_precondition()?;
-                            syntax_tree.add_goal(goal)
+                            if let Token::Punctuator(PunctuationType::RParentheses) =
+                                self.tokenizer.lookahead()?
+                            {
+                                self.tokenizer.get_token()?;
+                            } else {
+                                syntax_tree.add_goal(self.parse_precondition()?);
+                                match self.tokenizer.get_token()? {
+                                    Token::Punctuator(PunctuationType::RParentheses) => {}
+                                    token => {
+                                        let error = SyntacticError {
+                                            expected: "')' to close the goal".to_string(),
+                                            found: token.to_string(),
+                                            position: self.tokenizer.get_last_token_position(),
+                                        };
+                                        return Err(ParsingError::Syntactic(error));
+                                    }
+                                }
+                            }
                         }
-                        // initial state
+                        // initial state: atoms and the initial values of fluents
                         Token::Keyword(KeywordName::Init) => {
-                            let init_state = self.parse_predicates()?;
-                            syntax_tree.add_init_state(init_state)
+                            let (atoms, values) = self.parse_init()?;
+                            syntax_tree.init_state = atoms;
+                            syntax_tree.init_values = (!values.is_empty()).then_some(values);
+                        }
+                        // plan metric (optional)
+                        Token::Keyword(KeywordName::Metric) => {
+                            let metric = self.parse_metric()?;
+                            syntax_tree.metric = Some(metric);
                         }
                         token => {
                             let error = SyntacticError {

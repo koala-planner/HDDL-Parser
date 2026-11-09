@@ -279,6 +279,41 @@ mod lexer_test {
     }
 
     #[test]
+    pub fn metric_keyword_recognition_test() {
+        // the direction words stay identifiers, matched by the parser
+        let program = String::from(":metric minimize maximize\n").into_bytes();
+        let lexer = LexicalAnalyzer::new(&program);
+        for expected in [
+            Token::Keyword(KeywordName::Metric),
+            Token::Identifier("minimize"),
+            Token::Identifier("maximize"),
+            Token::EOF,
+        ] {
+            assert_eq!(lexer.get_token().unwrap(), expected);
+        }
+    }
+
+    #[test]
+    pub fn arithmetic_operator_recognition_test() {
+        let program = String::from("(+ (* 2 x) y)\n").into_bytes();
+        let lexer = LexicalAnalyzer::new(&program);
+        for expected in [
+            Token::Punctuator(PunctuationType::LParentheses),
+            Token::Operator(OperationType::Addition),
+            Token::Punctuator(PunctuationType::LParentheses),
+            Token::Operator(OperationType::Multiplication),
+            Token::Number(NumberType::Integer(2)),
+            Token::Identifier("x"),
+            Token::Punctuator(PunctuationType::RParentheses),
+            Token::Identifier("y"),
+            Token::Punctuator(PunctuationType::RParentheses),
+            Token::EOF,
+        ] {
+            assert_eq!(lexer.get_token().unwrap(), expected);
+        }
+    }
+
+    #[test]
     pub fn numeric_requirement_recognition_test() {
         let program = String::from(":fluents :numeric-fluents :action-costs\n").into_bytes();
         let lexer = LexicalAnalyzer::new(&program);

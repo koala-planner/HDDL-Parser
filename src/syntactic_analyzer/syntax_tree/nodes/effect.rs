@@ -98,9 +98,7 @@ impl<'a> Effect<'a> {
             Effect::Empty | Effect::Atom(_) | Effect::Equals(_, _) => {}
             Effect::Numeric(_, fluent, operand) => {
                 fluents.push(fluent);
-                if let NumericExpr::Fluent(read) = operand {
-                    fluents.push(read);
-                }
+                fluents.extend(operand.get_fluents());
             }
             Effect::Not(inner) => {
                 fluents.extend(inner.get_fluents(include_quantified));

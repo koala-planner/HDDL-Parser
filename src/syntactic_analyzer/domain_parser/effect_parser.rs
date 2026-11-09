@@ -217,7 +217,7 @@ impl<'a> Parser<'a> {
                             }
                         }
                     }
-                    // Numeric effect: an update of a fluent by a number or another fluent
+                    // Numeric effect: an update of a fluent by a numeric expression
                     Token::Operator(
                         operator @ (OperationType::Assign
                         | OperationType::Increase
@@ -232,17 +232,7 @@ impl<'a> Parser<'a> {
                             OperationType::ScaleUp => AssignmentOperator::ScaleUp,
                             _ => AssignmentOperator::ScaleDown,
                         };
-                        let fluent = match self.parse_numeric_expr()? {
-                            NumericExpr::Fluent(fluent) => fluent,
-                            NumericExpr::Number(number) => {
-                                let error = SyntacticError {
-                                    expected: format!("the fluent updated by {}", operator),
-                                    found: number.to_string(),
-                                    position: self.tokenizer.get_last_token_position(),
-                                };
-                                return Err(ParsingError::Syntactic(error));
-                            }
-                        };
+                        let fluent = self.parse_fluent()?;
                         let operand = self.parse_numeric_expr()?;
                         match self.tokenizer.get_token()? {
                             Token::Punctuator(PunctuationType::RParentheses) => {
@@ -289,21 +279,67 @@ impl<'a> Parser<'a> {
         }
     }
 
-    // a number, or a fluent written as (name args...) or as a bare name
+    // a fluent written as (name args...) or as a bare name
+    pub fn parse_fluent(&self) -> Result<Function<'a>, ParsingError> {
+        match self.tokenizer.get_token()? {
+            Token::Punctuator(PunctuationType::LParentheses) => self.parse_function(),
+            Token::Identifier(name) => Ok(Function {
+                name,
+                name_pos: self.tokenizer.get_last_token_position(),
+                variables: vec![],
+            }),
+            token => {
+                let error = SyntacticError {
+                    expected: "a fluent".to_string(),
+                    found: token.to_string(),
+                    position: self.tokenizer.get_last_token_position(),
+                };
+                Err(ParsingError::Syntactic(error))
+            }
+        }
+    }
+
+    // a number, a fluent, or a sum or product of such terms
     pub fn parse_numeric_expr(&self) -> Result<NumericExpr<'a>, ParsingError> {
         match self.tokenizer.get_token()? {
             Token::Number(number) => Ok(NumericExpr::Number(number)),
-            Token::Punctuator(PunctuationType::LParentheses) => {
-                Ok(NumericExpr::Fluent(self.parse_function()?))
-            }
             Token::Identifier(name) => Ok(NumericExpr::Fluent(Function {
                 name,
                 name_pos: self.tokenizer.get_last_token_position(),
                 variables: vec![],
             })),
+            Token::Punctuator(PunctuationType::LParentheses) => match self.tokenizer.lookahead()? {
+                // (+ e1 e2 ...) or (* e1 e2 ...): every operand up to the closing parenthesis
+                Token::Operator(
+                    operator @ (OperationType::Addition | OperationType::Multiplication),
+                ) => {
+                    self.tokenizer.get_token()?;
+                    let mut operands = vec![];
+                    while !matches!(
+                        self.tokenizer.lookahead()?,
+                        Token::Punctuator(PunctuationType::RParentheses)
+                    ) {
+                        operands.push(self.parse_numeric_expr()?);
+                    }
+                    self.tokenizer.get_token()?;
+                    if operands.len() < 2 {
+                        let error = SyntacticError {
+                            expected: format!("at least two operands for {}", operator),
+                            found: ")".to_string(),
+                            position: self.tokenizer.get_last_token_position(),
+                        };
+                        return Err(ParsingError::Syntactic(error));
+                    }
+                    Ok(match operator {
+                        OperationType::Addition => NumericExpr::Sum(operands),
+                        _ => NumericExpr::Product(operands),
+                    })
+                }
+                _ => Ok(NumericExpr::Fluent(self.parse_function()?)),
+            },
             token => {
                 let error = SyntacticError {
-                    expected: "a number or a fluent".to_string(),
+                    expected: "a number, a fluent, a sum or a product".to_string(),
                     found: token.to_string(),
                     position: self.tokenizer.get_last_token_position(),
                 };

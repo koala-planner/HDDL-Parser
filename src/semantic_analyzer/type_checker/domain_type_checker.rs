@@ -51,16 +51,7 @@ impl<'a> DomainTypeChecker<'a> {
         let par_types: HashMap<&str, Option<&str>> =
             HashMap::from_iter(parameters.iter().map(|par| (par.name, par.symbol_type)));
         for call in calls {
-            let declaration = declared.iter().find(|declaration| {
-                declaration.name() == call.name()
-                    && declaration.symbols().len() == call.symbols().len()
-            });
-            let Some(declaration) = declaration else {
-                return Err(C::undefined(UndefinedSymbolError {
-                    symbol: call.name().to_string(),
-                    position: call.name_pos(),
-                }));
-            };
+            let declaration = find_declaration(*call, declared)?;
             // resolve every argument to its type before comparing any
             let mut arguments = vec![];
             for argument in call.symbols() {

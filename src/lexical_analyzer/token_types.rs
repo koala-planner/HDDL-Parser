@@ -68,6 +68,9 @@ pub enum OperationType {
     Decrease,
     ScaleUp,
     ScaleDown,
+    // Arithmetic
+    Addition,
+    Multiplication,
 }
 
 impl fmt::Display for OperationType {
@@ -91,6 +94,8 @@ impl fmt::Display for OperationType {
             OperationType::Decrease => write!(fmt, "decrease"),
             OperationType::ScaleUp => write!(fmt, "scale-up"),
             OperationType::ScaleDown => write!(fmt, "scale-down"),
+            OperationType::Addition => write!(fmt, "+"),
+            OperationType::Multiplication => write!(fmt, "*"),
         }
     }
 }
@@ -165,6 +170,7 @@ pub enum KeywordName {
     Ordering,
     Constraints,
     Goal,
+    Metric,
 }
 
 impl fmt::Display for KeywordName {
@@ -192,6 +198,7 @@ impl fmt::Display for KeywordName {
             KeywordName::Ordering => ":ordering",
             KeywordName::Constraints => ":constraints",
             KeywordName::Goal => ":goal",
+            KeywordName::Metric => ":metric",
         };
         write!(f, "{}", keyword)
     }
