@@ -114,6 +114,9 @@ pub enum RequirementType {
     STRIPS,
     ProbabilisticEffects,
     ConditionalEffects,
+    // the IPC 2020 flag for forall in effects; HDDL 1.1 places those under
+    // :conditional-effects and keeps this spelling as a deprecated synonym
+    UniversalEffects,
     DomainAxioms,
     ADL,
     // numeric fluents: PDDL 2.1 spelling, PDDL 3.1 spelling, and the
@@ -121,6 +124,8 @@ pub enum RequirementType {
     Fluents,
     NumericFluents,
     ActionCosts,
+    // the domain admits (:metric minimize (makespan)) in its problems
+    Makespan,
     // temporal fragment: recognised as flags, durative actions are not parsed
     DurativeActions,
     DurationInequalities,
@@ -159,11 +164,13 @@ impl fmt::Display for RequirementType {
             RequirementType::STRIPS => ":strips",
             RequirementType::ProbabilisticEffects => ":probabilistic-effects",
             RequirementType::ConditionalEffects => ":conditional-effects",
+            RequirementType::UniversalEffects => ":universal-effects",
             RequirementType::DomainAxioms => ":domain-axioms",
             RequirementType::ADL => ":adl",
             RequirementType::Fluents => ":fluents",
             RequirementType::NumericFluents => ":numeric-fluents",
             RequirementType::ActionCosts => ":action-costs",
+            RequirementType::Makespan => ":makespan",
             RequirementType::DurativeActions => ":durative-actions",
             RequirementType::DurationInequalities => ":duration-inequalities",
             RequirementType::ContinuousEffects => ":continuous-effects",

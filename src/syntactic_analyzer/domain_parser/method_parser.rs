@@ -54,6 +54,9 @@ impl<'a> Parser<'a> {
                                                             )
                                                             | Token::Keyword(
                                                                 KeywordName::OrderedSubtasks,
+                                                            )
+                                                            | Token::Punctuator(
+                                                                PunctuationType::RParentheses,
                                                             ) => {
                                                                 let tn = self.parse_htn()?;
                                                                 Ok(Method {

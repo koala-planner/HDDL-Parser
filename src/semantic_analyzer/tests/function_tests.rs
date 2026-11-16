@@ -320,3 +320,19 @@ pub fn inconsistent_fluent_arg_type_in_problem_test() {
         }
     }
 }
+
+#[test]
+pub fn makespan_metric_verify_test() {
+    // makespan is a metric of its own, not a function that has to be declared
+    let problem = numeric_problem("", "(:metric minimize (makespan))");
+    let result = verify(NUMERIC_DOMAIN, Some(&problem));
+    assert!(result.is_ok(), "{:?}", result);
+    // it is only ever minimised: elsewhere the name is an undeclared function
+    let problem = numeric_problem("", "(:metric maximize (makespan))");
+    match verify(NUMERIC_DOMAIN, Some(&problem)) {
+        Err(SemanticErrorType::UndefinedFunction(undefined)) => {
+            assert_eq!(undefined.symbol, "makespan");
+        }
+        other => panic!("{:?}", other),
+    }
+}

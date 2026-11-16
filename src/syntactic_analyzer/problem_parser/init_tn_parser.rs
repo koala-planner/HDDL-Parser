@@ -20,20 +20,12 @@ impl<'a> Parser<'a> {
                     }
                 }
             }
+            // a (potentially empty) task network without parameters
             Token::Keyword(KeywordName::Subtasks)
-            | Token::Keyword(KeywordName::OrderedSubtasks) => Ok(InitialTaskNetwork {
+            | Token::Keyword(KeywordName::OrderedSubtasks)
+            | Token::Punctuator(PunctuationType::RParentheses) => Ok(InitialTaskNetwork {
                 parameters: None,
                 tn: self.parse_htn()?,
-            }),
-            // empty init tn
-            Token::Punctuator(PunctuationType::RParentheses) => Ok(InitialTaskNetwork {
-                parameters: None,
-                tn: HTN {
-                    subtasks: vec![],
-                    ordering_pos: None,
-                    orderings: TaskOrdering::Partial(vec![]),
-                    constraints: None,
-                },
             }),
             token => {
                 let error = SyntacticError {
@@ -46,21 +38,21 @@ impl<'a> Parser<'a> {
         }
     }
 
+    // a task network, up to and including the ')' that closes the method or
+    // :htn block it belongs to
     pub fn parse_htn(&self) -> Result<HTN<'a>, ParsingError> {
         let mut subtasks = vec![];
         let mut orderings = vec![];
         let mut constraints = None;
         let mut ordering_pos = None;
-        // check if it is an empty task network
-        if let Token::Punctuator(PunctuationType::RParentheses) = self.tokenizer.lookahead()? {
-            return Ok(HTN {
+        match self.tokenizer.get_token()? {
+            // an empty task network
+            Token::Punctuator(PunctuationType::RParentheses) => Ok(HTN {
                 subtasks,
                 ordering_pos,
                 orderings: TaskOrdering::Partial(orderings),
                 constraints,
-            });
-        }
-        match self.tokenizer.get_token()? {
+            }),
             Token::Keyword(KeywordName::Subtasks) => {
                 subtasks = self.parse_subtasks()?;
                 loop {
@@ -183,16 +175,11 @@ impl<'a> Parser<'a> {
             }
             Token::Keyword(KeywordName::OrderedSubtasks) => {
                 subtasks = self.parse_subtasks()?;
+                if let Token::Keyword(KeywordName::Constraints) = self.tokenizer.lookahead()? {
+                    self.tokenizer.get_token()?;
+                    constraints = Some(self.parse_constraints()?);
+                }
                 match self.tokenizer.get_token()? {
-                    Token::Keyword(KeywordName::Constraints) => {
-                        constraints = Some(self.parse_constraints()?);
-                        Ok(HTN {
-                            subtasks,
-                            ordering_pos,
-                            orderings: TaskOrdering::Total,
-                            constraints,
-                        })
-                    }
                     Token::Punctuator(PunctuationType::RParentheses) => Ok(HTN {
                         subtasks,
                         ordering_pos,

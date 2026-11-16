@@ -336,6 +336,28 @@ mod lexer_test {
     }
 
     #[test]
+    pub fn hddl_1_1_requirement_recognition_test() {
+        // :makespan is new in HDDL 1.1; :universal-effects is the IPC 2020
+        // flag it keeps as a deprecated synonym of :conditional-effects
+        let program =
+            String::from(":makespan :universal-effects :conditional-effects\n").into_bytes();
+        let lexer = LexicalAnalyzer::new(&program);
+        for expected in [
+            Token::Requirement(RequirementType::Makespan),
+            Token::Requirement(RequirementType::UniversalEffects),
+            Token::Requirement(RequirementType::ConditionalEffects),
+            Token::EOF,
+        ] {
+            assert_eq!(lexer.get_token().unwrap(), expected);
+        }
+        assert_eq!(RequirementType::Makespan.to_string(), ":makespan");
+        assert_eq!(
+            RequirementType::UniversalEffects.to_string(),
+            ":universal-effects"
+        );
+    }
+
+    #[test]
     pub fn numeric_operator_recognition_test() {
         let program = String::from("increase decrease assign scale-up scale-down\n").into_bytes();
         let lexer = LexicalAnalyzer::new(&program);

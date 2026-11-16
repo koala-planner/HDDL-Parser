@@ -1490,3 +1490,65 @@ pub fn refresh_picks_the_numeric_flag_test() {
         ]
     );
 }
+
+#[test]
+pub fn refresh_adds_makespan_requirement_test() {
+    let domain = "(define (domain d)
+        (:requirements :typing)
+        (:predicates (p))
+        (:action act :parameters () :effect (p))
+    )";
+    let problem = "(define (problem p) (:domain d)
+        (:init (p))
+        (:metric minimize (makespan))
+    )";
+    let (flags, _) = refreshed_requirements(domain, Some(problem));
+    assert_eq!(
+        flags,
+        [RequirementType::TypedObjects, RequirementType::Makespan]
+    );
+    // the flag is a permission for the domain's problems: once declared it
+    // stays, with a problem that does not use it and with no problem at all
+    let declared = domain.replace(":typing", ":typing :makespan");
+    let no_metric = problem.replace("(:metric minimize (makespan))", "");
+    for problem in [Some(no_metric.as_str()), None] {
+        let (flags, _) = refreshed_requirements(&declared, problem);
+        assert_eq!(
+            flags,
+            [RequirementType::TypedObjects, RequirementType::Makespan]
+        );
+    }
+}
+
+#[test]
+pub fn refresh_reads_conditional_effect_guards_test() {
+    // the guard of a conditional effect is a condition like a precondition
+    let (flags, _) = refreshed_requirements(
+        "(define (domain d)
+            (:requirements :typing)
+            (:types t)
+            (:predicates (p) (q ?x - t))
+            (:action act
+             :parameters (?y ?z - t)
+             :effect (and
+                (when (not (p)) (p))
+                (when (forall (?x - t) (q ?x)) (p))
+                (when (exists (?x - t) (or (q ?x) (= ?y ?z))) (p))
+             )
+            )
+        )",
+        None,
+    );
+    assert_eq!(
+        flags,
+        [
+            RequirementType::TypedObjects,
+            RequirementType::UniversalPreconditions,
+            RequirementType::ExistentialPreconditions,
+            RequirementType::NegativePreconditions,
+            RequirementType::DisjunctivePreconditions,
+            RequirementType::ConditionalEffects,
+            RequirementType::Equality,
+        ]
+    );
+}

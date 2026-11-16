@@ -113,25 +113,38 @@ impl<'a> Transpiler<'a> {
             preconditions.extend(method.precondition.iter());
         }
         preconditions.extend(program.problem.iter().flat_map(|p| p.goal.iter()));
-        let any_precondition = |predicate: fn(&Precondition) -> bool| {
-            preconditions
-                .iter()
-                .any(|formula| formula.any_subformula(&mut |f| predicate(f)))
-        };
         let any_effect = |predicate: fn(&Effect) -> bool| {
             effects
                 .iter()
                 .any(|effect| effect.any_subformula(&mut |f| predicate(f)))
         };
+        // a condition is a precondition, the goal, or the guard of a
+        // conditional effect: all are subject to the same flags
+        let any_condition = |predicate: fn(&Precondition) -> bool| {
+            preconditions
+                .iter()
+                .any(|formula| formula.any_subformula(&mut |f| predicate(f)))
+                || effects.iter().any(|effect| {
+                    effect.any_subformula(&mut |f| match f {
+                        Effect::Imply(guard, _) => guard.any_subformula(&mut |g| predicate(g)),
+                        _ => false,
+                    })
+                })
+        };
 
-        let has_forall = any_precondition(|f| matches!(f, Precondition::ForAll(_, _)));
-        let has_exists = any_precondition(|f| matches!(f, Precondition::Exists(_, _)));
-        let has_negative = any_precondition(|f| matches!(f, Precondition::Not(_)));
-        let has_disjunction = any_precondition(|f| {
-            matches!(
-                f,
-                Precondition::Or(_) | Precondition::Xor(_) | Precondition::Imply(_, _)
-            )
+        let has_forall = any_condition(|f| matches!(f, Precondition::ForAll(_, _)));
+        let has_exists = any_condition(|f| matches!(f, Precondition::Exists(_, _)));
+        // a negated atom is a negative precondition and a negated equality is
+        // still equality; negating anything else is disjunctive
+        let has_negative = any_condition(
+            |f| matches!(f, Precondition::Not(inner) if matches!(**inner, Precondition::Atom(_))),
+        );
+        let has_disjunction = any_condition(|f| match f {
+            Precondition::Or(_) | Precondition::Xor(_) | Precondition::Imply(_, _) => true,
+            Precondition::Not(inner) => {
+                !matches!(**inner, Precondition::Atom(_) | Precondition::Equals(_, _))
+            }
+            _ => false,
         });
         let has_conditional =
             any_effect(|f| matches!(f, Effect::Imply(_, _) | Effect::ForAll(_, _)));
@@ -150,15 +163,8 @@ impl<'a> Transpiler<'a> {
             )
             .any(|constraints| !constraints.is_empty());
         let has_equality = has_constraints
-            || any_precondition(|f| matches!(f, Precondition::Equals(_, _)))
-            || any_effect(|f| match f {
-                Effect::Equals(_, _) => true,
-                // the guard of a conditional effect is a precondition
-                Effect::Imply(guard, _) => {
-                    guard.any_subformula(&mut |g| matches!(g, Precondition::Equals(_, _)))
-                }
-                _ => false,
-            });
+            || any_condition(|f| matches!(f, Precondition::Equals(_, _)))
+            || any_effect(|f| matches!(f, Effect::Equals(_, _)));
         let has_hierarchy = !program.domain.compound_tasks.is_empty()
             || !program.domain.methods.is_empty()
             || program
@@ -170,9 +176,17 @@ impl<'a> Transpiler<'a> {
             .methods
             .iter()
             .any(|method| method.precondition.is_some());
+        
+        let metric = program.problem.as_ref().and_then(|p| p.metric.as_ref());
+        let allows_makespan = matches!(metric, Some(Metric::Makespan))
+            || program
+                .domain
+                .requirements
+                .contains(&RequirementType::Makespan);
         // numerics: action costs cover a domain that only increases total-cost
         // by a constant or a fluent and, at most, minimises it; anything else
-        // needs numeric fluents
+        // needs numeric fluents. Makespan is not a numeric metric.
+        let numeric_metric = metric.filter(|metric| !matches!(metric, Metric::Makespan));
         let is_cost_increase = |f: &Effect| {
             matches!(
                 f,
@@ -188,17 +202,16 @@ impl<'a> Transpiler<'a> {
             effect.any_subformula(&mut |f| {
                 matches!(f, Effect::Numeric(_, _, _)) && !is_cost_increase(f)
             })
-        }) || program.problem.as_ref().is_some_and(|p| {
-            p.metric.as_ref().is_some_and(|metric| {
-                !matches!(metric, Metric::Minimize(NumericExpr::Fluent(f)) if f.name == "total-cost")
-            })
+        }) || numeric_metric.is_some_and(|metric| {
+            !matches!(metric, Metric::Minimize(NumericExpr::Fluent(f)) if f.name == "total-cost")
         });
         let uses_numerics = has_numeric_effect
             || !program.domain.functions.is_empty()
+            || numeric_metric.is_some()
             || program
                 .problem
                 .as_ref()
-                .is_some_and(|p| p.init_values.is_some() || p.metric.is_some());
+                .is_some_and(|p| p.init_values.is_some());
         drop(preconditions);
         drop(effects);
 
@@ -208,6 +221,8 @@ impl<'a> Transpiler<'a> {
             (RequirementType::NegativePreconditions, has_negative),
             (RequirementType::DisjunctivePreconditions, has_disjunction),
             (RequirementType::ConditionalEffects, has_conditional),
+            // deprecated: forall in effects is reported as :conditional-effects
+            (RequirementType::UniversalEffects, false),
             (RequirementType::ProbabilisticEffects, has_probabilistic),
             (RequirementType::Equality, has_equality),
             (RequirementType::Hierarchy, has_hierarchy),
@@ -223,6 +238,7 @@ impl<'a> Transpiler<'a> {
                 RequirementType::NumericFluents,
                 uses_numerics && exceeds_action_costs,
             ),
+            (RequirementType::Makespan, allows_makespan),
         ];
         let requirements = &mut program.domain.requirements;
         for (flag, used) in uses {

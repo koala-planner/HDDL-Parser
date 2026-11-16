@@ -134,6 +134,7 @@ impl<'a> LexicalAnalyzer<'a> {
                     "conditional-effects" => {
                         Token::Requirement(RequirementType::ConditionalEffects)
                     }
+                    "universal-effects" => Token::Requirement(RequirementType::UniversalEffects),
                     "probabilistic-effects" => {
                         Token::Requirement(RequirementType::ProbabilisticEffects)
                     }
@@ -142,6 +143,7 @@ impl<'a> LexicalAnalyzer<'a> {
                     "fluents" => Token::Requirement(RequirementType::Fluents),
                     "numeric-fluents" => Token::Requirement(RequirementType::NumericFluents),
                     "action-costs" => Token::Requirement(RequirementType::ActionCosts),
+                    "makespan" => Token::Requirement(RequirementType::Makespan),
                     "disjunctive-preconditions" => {
                         Token::Requirement(RequirementType::DisjunctivePreconditions)
                     }

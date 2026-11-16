@@ -5,7 +5,15 @@ impl<'a> Parser<'a> {
     // optimise, closed by ')'
     pub fn parse_metric(&self) -> Result<Metric<'a>, ParsingError> {
         let metric = match self.tokenizer.get_token()? {
-            Token::Identifier("minimize") => Metric::Minimize(self.parse_numeric_expr()?),
+            // makespan is written like a parameterless fluent but is not one
+            Token::Identifier("minimize") => match self.parse_numeric_expr()? {
+                NumericExpr::Fluent(fluent)
+                    if fluent.name == "makespan" && fluent.variables.is_empty() =>
+                {
+                    Metric::Makespan
+                }
+                expression => Metric::Minimize(expression),
+            },
             Token::Identifier("maximize") => Metric::Maximize(self.parse_numeric_expr()?),
             token => {
                 let error = SyntacticError {

@@ -1624,6 +1624,67 @@ mod tests {
     }
 
     #[test]
+    pub fn task_network_closes_its_block_test() {
+        // a task network ends at the ')' of its :htn block or method, so the
+        // blocks after it are still parsed
+        for htn in [
+            "(:htn)",
+            "(:htn :parameters (?x - t))",
+            "(:htn :ordered-tasks (act) :constraints (not (= a b)))",
+        ] {
+            let program =
+                format!("(define (problem p1) (:domain d) {htn} (:init (p)))").into_bytes();
+            match Parser::new(LexicalAnalyzer::new(&program)).parse() {
+                Ok(AbstractSyntaxTree::Problem(ast)) => {
+                    assert!(ast.init_tn.is_some(), "{htn}");
+                    assert_eq!(ast.init_state.len(), 1, "{htn}");
+                }
+                Err(error) => panic!("{htn}: {:?}", error),
+                _ => panic!("{htn}: not a problem"),
+            }
+        }
+        for body in [
+            "",
+            ":precondition (p)",
+            ":ordered-subtasks (act) :constraints (not (= ?x ?y))",
+        ] {
+            let program = format!(
+                "(define (domain d)
+                    (:method m :parameters (?x ?y) :task (t) {body})
+                    (:action act :parameters ())
+                 )"
+            )
+            .into_bytes();
+            match Parser::new(LexicalAnalyzer::new(&program)).parse() {
+                Ok(AbstractSyntaxTree::Domain(ast)) => {
+                    assert_eq!(ast.methods.len(), 1, "{body}");
+                    assert!(ast.methods[0].tn.subtasks.len() <= 1, "{body}");
+                    assert_eq!(ast.actions.len(), 1, "{body}");
+                }
+                Err(error) => panic!("{body}: {:?}", error),
+                _ => panic!("{body}: not a domain"),
+            }
+        }
+    }
+
+    #[test]
+    pub fn makespan_metric_parsing_test() {
+        let program =
+            String::from("(define (problem p1) (:domain d) (:metric minimize (makespan)))")
+                .into_bytes();
+        match Parser::new(LexicalAnalyzer::new(&program)).parse() {
+            Ok(AbstractSyntaxTree::Problem(ast)) => {
+                assert!(matches!(ast.metric, Some(Metric::Makespan)));
+                assert_eq!(
+                    ast.metric.unwrap().to_string(),
+                    "(:metric minimize (makespan))"
+                );
+            }
+            _ => panic!("parsing errors"),
+        }
+    }
+
+    #[test]
     pub fn file_classification_test() {
         let program = String::from(
             "(define (domain blahblah)
